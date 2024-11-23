@@ -4412,6 +4412,16 @@
 	)
 	(wire
 		(pts
+			(xy 332.74 154.94) (xy 358.14 154.94)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b1e64a56-7f04-4d51-8277-361f1abd3334")
+	)
+	(wire
+		(pts
 			(xy 147.32 121.92) (xy 119.38 121.92)
 		)
 		(stroke
@@ -5072,16 +5082,6 @@
 	)
 	(wire
 		(pts
-			(xy 332.74 134.62) (xy 358.14 134.62)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f16cbff7-125d-4cec-8c39-ef81b1a77d0e")
-	)
-	(wire
-		(pts
 			(xy 297.18 127) (xy 294.64 127)
 		)
 		(stroke
@@ -5201,6 +5201,17 @@
 		)
 		(uuid "030638b5-03ab-45e0-a372-370e90612daa")
 	)
+	(label "SRCLK"
+		(at 358.14 154.94 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "03ac6830-3a26-435b-9996-ba69b01ac1f0")
+	)
 	(label "SER2"
 		(at 91.44 168.91 180)
 		(fields_autoplaced yes)
@@ -5244,17 +5255,6 @@
 			(justify left bottom)
 		)
 		(uuid "983e9d25-a703-49f9-b973-17f5869a628b")
-	)
-	(label "SRCLK"
-		(at 358.14 134.62 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "b9372941-7b88-43f2-ab2c-6bcc41ecf1fa")
 	)
 	(label "SRCLK"
 		(at 95.25 90.17 90)
