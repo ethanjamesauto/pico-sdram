@@ -2872,6 +2872,16 @@
 	)
 	(wire
 		(pts
+			(xy 358.14 144.78) (xy 332.74 144.78)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "02f28d6c-fe35-4b30-a84f-9d35f6e2da3d")
+	)
+	(wire
+		(pts
 			(xy 261.62 78.74) (xy 261.62 76.2)
 		)
 		(stroke
@@ -3852,16 +3862,6 @@
 	)
 	(wire
 		(pts
-			(xy 334.01 157.48) (xy 332.74 157.48)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "76842e3d-7eb2-4c4a-9681-44e2205358f0")
-	)
-	(wire
-		(pts
 			(xy 297.18 144.78) (xy 269.24 144.78)
 		)
 		(stroke
@@ -4009,16 +4009,6 @@
 			(type default)
 		)
 		(uuid "826953fb-3f0f-4d17-8882-4c35db1de6bf")
-	)
-	(wire
-		(pts
-			(xy 332.74 142.24) (xy 334.01 142.24)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "82aafc8a-fb83-492d-ac05-a7e8804bc21c")
 	)
 	(wire
 		(pts
@@ -4552,6 +4542,16 @@
 	)
 	(wire
 		(pts
+			(xy 358.14 142.24) (xy 332.74 142.24)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "bf9b88f6-0775-4558-add0-2af4808572e8")
+	)
+	(wire
+		(pts
 			(xy 142.24 139.7) (xy 215.9 139.7)
 		)
 		(stroke
@@ -4679,16 +4679,6 @@
 			(type default)
 		)
 		(uuid "ccb8d08c-957b-4217-8daf-fb3614ff43cb")
-	)
-	(wire
-		(pts
-			(xy 334.01 132.08) (xy 332.74 132.08)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "cd792acf-3e0f-46b4-9928-490d9baaee4a")
 	)
 	(wire
 		(pts
@@ -4992,7 +4982,7 @@
 	)
 	(wire
 		(pts
-			(xy 334.01 149.86) (xy 332.74 149.86)
+			(xy 358.14 149.86) (xy 332.74 149.86)
 		)
 		(stroke
 			(width 0)
@@ -5082,6 +5072,16 @@
 	)
 	(wire
 		(pts
+			(xy 332.74 134.62) (xy 358.14 134.62)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f16cbff7-125d-4cec-8c39-ef81b1a77d0e")
+	)
+	(wire
+		(pts
 			(xy 297.18 127) (xy 294.64 127)
 		)
 		(stroke
@@ -5092,7 +5092,7 @@
 	)
 	(wire
 		(pts
-			(xy 334.01 147.32) (xy 332.74 147.32)
+			(xy 358.14 147.32) (xy 332.74 147.32)
 		)
 		(stroke
 			(width 0)
@@ -5191,7 +5191,7 @@
 		(uuid "ffb44f8d-1f38-4043-85e1-f0dda378867b")
 	)
 	(label "SER2"
-		(at 334.01 147.32 0)
+		(at 358.14 147.32 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -5223,17 +5223,6 @@
 		)
 		(uuid "29daab2d-8695-4547-8d88-be59645e8424")
 	)
-	(label "SRCLK"
-		(at 334.01 142.24 0)
-		(fields_autoplaced yes)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-			(justify left bottom)
-		)
-		(uuid "315f7673-76f2-42c5-9fd4-35a6980d21a1")
-	)
 	(label "RCLK"
 		(at 97.79 90.17 90)
 		(fields_autoplaced yes)
@@ -5245,8 +5234,8 @@
 		)
 		(uuid "635b7420-feac-4431-915d-ba8267db6a2d")
 	)
-	(label "SER1"
-		(at 334.01 157.48 0)
+	(label "SER3"
+		(at 358.14 142.24 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -5254,7 +5243,18 @@
 			)
 			(justify left bottom)
 		)
-		(uuid "abbcd38e-0d16-4803-a4e4-ee969be15b59")
+		(uuid "983e9d25-a703-49f9-b973-17f5869a628b")
+	)
+	(label "SRCLK"
+		(at 358.14 134.62 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "b9372941-7b88-43f2-ab2c-6bcc41ecf1fa")
 	)
 	(label "SRCLK"
 		(at 95.25 90.17 90)
@@ -5278,8 +5278,8 @@
 		)
 		(uuid "eb0f2965-44cd-41f0-b31a-41b779678d19")
 	)
-	(label "SER3"
-		(at 334.01 132.08 0)
+	(label "SER1"
+		(at 358.14 144.78 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -5287,10 +5287,10 @@
 			)
 			(justify left bottom)
 		)
-		(uuid "ebb8d967-3fb4-4e76-954f-9b8009f4750b")
+		(uuid "f48d32ea-4a3e-4091-b8eb-974abb2a4b86")
 	)
 	(label "RCLK"
-		(at 334.01 149.86 0)
+		(at 358.14 149.86 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
