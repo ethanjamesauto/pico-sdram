@@ -13,7 +13,7 @@
 .wrap_target
 
 out pins, 3             side 0b10
-set x, 7                side 0b01
+set x, 6                side 0b01
 
 loop:
     out pins, 3         side 0b00
@@ -32,8 +32,9 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     // Map the state machine's OUT pin group to one pin, namely the `pin`
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, NUM_PINS);
-    sm_config_set_sideset_pins(&c, sidepin, NUM_SIDESET);
-    sm_config_set_out_shift(&c, shift_right=false, autopull=true, pull_threshold=24);
+    sm_config_set_sideset_pins(&c, sidepin);
+    sm_config_set_out_shift(&c, true, true, 24); // shift_right=false, autopull=true, pull_threshold=24
+    sm_config_set_clkdiv(&c, 12.5);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < NUM_PINS; i++) {
