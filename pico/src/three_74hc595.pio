@@ -34,7 +34,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
     sm_config_set_out_shift(&c, true, true, 24); // shift_right=true, autopull=true, pull_threshold=24
-    sm_config_set_clkdiv(&c, 12.5);
+    sm_config_set_clkdiv(&c, 125.0/20.0);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < NUM_PINS; i++) {
