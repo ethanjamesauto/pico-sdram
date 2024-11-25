@@ -9,7 +9,7 @@
 .wrap_target
 
 set x, 31    ; number of transactions - 1
-wait 1 gpio 18 ; the rclk pin
+wait 1 gpio 27 ; the rclk pin
 
 loop:
     out pins, 16 [14]
@@ -29,7 +29,7 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     sm_config_set_out_pins(&c, pin, BUS_WIDTH);
     sm_config_set_out_shift(&c, true, true, 32); // shift_right=true, autopull=true, pull_threshold=32
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
-    sm_config_set_clkdiv(&c, 125.0/10.0);
+    sm_config_set_clkdiv(&c, 125.0/50.0);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < BUS_WIDTH; i++) {

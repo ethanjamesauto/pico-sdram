@@ -5,6 +5,8 @@
 ; sideset pins - rclk | srclk - (register clock | serial clock)
 .side_set 2             
 
+wait 1 gpio 27          side 0b10
+
 .wrap_target
 
 out pins, 3             side 0b10 ; shift out 3 bits of data to the 3 serial data lines
@@ -29,7 +31,8 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
     sm_config_set_out_shift(&c, true, true, 24); // shift_right=true, autopull=true, pull_threshold=24
-    sm_config_set_clkdiv(&c, 125.0/10.0);
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
+    sm_config_set_clkdiv(&c, 125.0/50.0);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < NUM_PINS; i++) {

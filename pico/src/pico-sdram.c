@@ -15,11 +15,20 @@
 
 #define TOTAL_PINS 5
 
+#define TRIGGER_PIN 27
+
 int main()
 {
     stdio_init_all();
 
     puts("Hello, world!");
+
+    // init the trigger pin as an output
+    gpio_init(TRIGGER_PIN);
+    gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
+
+    // set to low
+    gpio_put(TRIGGER_PIN, 0);
 
     PIO pio;
     uint sm;
@@ -38,8 +47,8 @@ int main()
 
     printf("Successfully loaded pio programs\n");
 
-    three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
-    data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
+    // three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
+    // data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
     pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2);
 
 #define NUM_CMD 8
@@ -59,6 +68,11 @@ int main()
     }
 
     while(1) {
+        sleep_ms(10);
+        three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
+        data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
+        sleep_ms(40);
+
         for (int i = 0; i < NUM_DATA; i++) {
             int j = i*2;
             if (j + 1 < NUM_CMD) {
@@ -66,9 +80,14 @@ int main()
                 pio_sm_put_blocking(pio, sm, cmd[j + 1]);
             }
             pio_sm_put_blocking(pio2, sm2, data[i]);
-        }
 
-        sleep_ms(50);
+            if (i == 4) {           // TODO: why can this go all the way up to 8 without failing?
+                gpio_put(TRIGGER_PIN, 1);
+                // pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
+            } else {
+                gpio_put(TRIGGER_PIN, 0);
+            }
+        }
     }
 
     return 0;
