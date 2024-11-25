@@ -15,6 +15,8 @@
 
 #define TOTAL_PINS 5
 
+#define SDRAM_CLK 22
+
 int main()
 {
     stdio_init_all();
@@ -62,7 +64,7 @@ int main()
         sleep_us(25);
         pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, false);
         three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
-        data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
+        data_bus_program_init(pio2, sm2, offset2, DATA_BASE, SDRAM_CLK);
         // sleep_ms(40);
 
         for (int i = 0; i < NUM_DATA; i++) {

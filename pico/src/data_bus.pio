@@ -6,14 +6,15 @@
 
 .program data_bus
 
+.side_set 1 ; sdram clock pin
+
 .wrap_target
 
-set x, 31    ; number of transactions - 1
-; wait 1 gpio 27 ; the rclk pin
+set x, 31               side 0b0    ; number of transactions - 1
 
 loop:
-    out pins, 16 [14]
-    jmp x-- loop
+    out pins, 16        side 0b0    [7]
+    jmp x-- loop        side 0b1    [7]
 
 .wrap
 
@@ -21,12 +22,13 @@ loop:
 
 #define BUS_WIDTH 16
 
-static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin) {
+static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin, uint sidepin) {
     pio_sm_config c = data_bus_program_get_default_config(offset);
 
     // Map the state machine's OUT pin group to one pin, namely the `pin`
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, BUS_WIDTH);
+    sm_config_set_sideset_pins(&c, sidepin);
     sm_config_set_out_shift(&c, true, true, 32); // shift_right=true, autopull=true, pull_threshold=32
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
     sm_config_set_clkdiv(&c, 125.0/50.0);
@@ -35,9 +37,11 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     for (int i = 0; i < BUS_WIDTH; i++) {
         pio_gpio_init(pio, pin + i);
     }
+    pio_gpio_init(pio, sidepin);
 
     // Set the pin direction to output at the PIO
     pio_sm_set_consecutive_pindirs(pio, sm, pin, BUS_WIDTH, true);
+    pio_sm_set_consecutive_pindirs(pio, sm, sidepin, 1, true);
 
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
