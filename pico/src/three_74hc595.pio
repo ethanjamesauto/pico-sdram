@@ -1,19 +1,14 @@
-;
-; Copyright (c) 2020 Raspberry Pi (Trading) Ltd.
-;
-; SPDX-License-Identifier: BSD-3-Clause
-;
 
+; This program drives 3 74HC595 shift registers to control 24 outputs.
 .program three_74hc595
-.side_set 2             // rclk | srclk     (register clock | serial clock)
 
-; Repeatedly get one word of data from the TX FIFO, stalling when the FIFO is
-; empty. Write the least significant bit to the OUT pin group.
+; sideset pins - rclk | srclk - (register clock | serial clock)
+.side_set 2             
 
 .wrap_target
 
 out pins, 3             side 0b10
-set x, 6                side 0b01
+set x, 6                side 0b01 ; number of bits to shift out minus 2
 
 loop:
     out pins, 3         side 0b00
@@ -34,7 +29,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
     sm_config_set_out_shift(&c, true, true, 24); // shift_right=true, autopull=true, pull_threshold=24
-    sm_config_set_clkdiv(&c, 125.0/20.0);
+    sm_config_set_clkdiv(&c, 125.0/5.0);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < NUM_PINS; i++) {

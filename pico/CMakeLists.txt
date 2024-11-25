@@ -28,6 +28,7 @@ pico_sdk_init()
 add_executable(pico-sdram src/pico-sdram.c)
 
 pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/three_74hc595.pio)
+pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/data_bus.pio)
 pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/hello.pio)
 
 pico_set_program_name(pico-sdram "pico-sdram")
