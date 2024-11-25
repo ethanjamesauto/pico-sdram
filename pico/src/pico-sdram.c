@@ -15,20 +15,11 @@
 
 #define TOTAL_PINS 5
 
-#define TRIGGER_PIN 27
-
 int main()
 {
     stdio_init_all();
 
     puts("Hello, world!");
-
-    // init the trigger pin as an output
-    gpio_init(TRIGGER_PIN);
-    gpio_set_dir(TRIGGER_PIN, GPIO_OUT);
-
-    // set to low
-    gpio_put(TRIGGER_PIN, 0);
 
     PIO pio;
     uint sm;
@@ -81,11 +72,10 @@ int main()
             }
             pio_sm_put_blocking(pio2, sm2, data[i]);
 
-            if (i == 4) {           // TODO: why can this go all the way up to 8 without failing?
-                gpio_put(TRIGGER_PIN, 1);
-                // pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
-            } else {
-                gpio_put(TRIGGER_PIN, 0);
+            // Let the fifos fill up a bit before starting the pios
+            // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
+            if (i == 3) {
+                pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
             }
         }
     }

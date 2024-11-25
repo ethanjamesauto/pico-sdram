@@ -9,7 +9,7 @@
 .wrap_target
 
 set x, 31    ; number of transactions - 1
-wait 1 gpio 27 ; the rclk pin
+; wait 1 gpio 27 ; the rclk pin
 
 loop:
     out pins, 16 [14]
@@ -42,6 +42,6 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
     // Set the state machine running
-    pio_sm_set_enabled(pio, sm, true);
+    // pio_sm_set_enabled(pio, sm, true);
 }
 %}

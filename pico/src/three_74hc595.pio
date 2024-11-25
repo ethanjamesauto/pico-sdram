@@ -5,8 +5,6 @@
 ; sideset pins - rclk | srclk - (register clock | serial clock)
 .side_set 2             
 
-wait 1 gpio 27          side 0b10
-
 .wrap_target
 
 out pins, 3             side 0b10 ; shift out 3 bits of data to the 3 serial data lines
@@ -51,6 +49,6 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
     // Set the state machine running
-    pio_sm_set_enabled(pio, sm, true);
+    // pio_sm_set_enabled(pio, sm, true);
 }
 %}
