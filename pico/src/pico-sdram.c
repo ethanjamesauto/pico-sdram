@@ -42,16 +42,30 @@ int main()
     data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
     pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2);
 
-    while(1) {
-        for (int i = 0; i < 4; i++) {
-            pio_sm_put_blocking(pio, sm, 0b010001100010001100010001);
-            pio_sm_put_blocking(pio, sm, ~(0b010001100010001100010001));
-            if (i != 3)
-                pio_sm_put_blocking(pio2, sm2, 0x00020001);
-            //pio_sm_put_blocking(pio2, sm2, 0x00080004);
+#define NUM_CMD 8
+#define NUM_DATA 16
+    uint32_t cmd[NUM_CMD];  // 16 32-bit words (only the lower 24 bits are used)
+    uint32_t data[NUM_DATA]; // 64 16-bit words
+    
+    for (int i = 0; i < NUM_CMD; i++) {
+        cmd[i] = 0xaaaaaaaa;
+        if (i % 2 == 0) {
+            cmd[i] = ~cmd[i];
+        }
+    }
 
-            //pio_sm_put_blocking(pio2, sm2, 0xaaaa5555);
-            //pio_sm_put_blocking(pio2, sm2, 0xaaaa5555);
+    for (int i = 0; i < NUM_DATA; i++) {
+        data[i] = 0x5555aaaa;
+    }
+
+    while(1) {
+        for (int i = 0; i < NUM_DATA; i++) {
+            int j = i*2;
+            if (j + 1 < NUM_CMD) {
+                pio_sm_put_blocking(pio, sm, cmd[j]);
+                pio_sm_put_blocking(pio, sm, cmd[j + 1]);
+            }
+            pio_sm_put_blocking(pio2, sm2, data[i]);
         }
 
         sleep_ms(50);
