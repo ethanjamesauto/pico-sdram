@@ -50,8 +50,8 @@ int main()
 
     printf("Successfully loaded pio programs\n");
 
-    // three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
-    // data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
+    three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
+    data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
     clkgen_program_init(pio3, sm3, offset3, SDRAM_CLK);
     pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2 | 1u << sm3);
     
@@ -83,14 +83,16 @@ int main()
 
     while(1) {
         sleep_us(500);
-        pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, false);
-        three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
-        data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
 
-        // TODO: find a way to stop the data/cmd state machines without turning off the clkdivs,
-        // so that we don't need to do this
-        pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2 | 1u << sm3); 
-        // sleep_ms(40);
+        // Note: I'm 99% sure that these calls can't be sped up any further
+
+        // First, turn off the two state machines
+        pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, false);
+
+        // Reset both program counters to 0 by executing a 
+        // JMP instruction to the starting offset of each program
+        pio_sm_exec(pio, sm, offset);
+        pio_sm_exec(pio2, sm2, offset2);
 
         for (int i = 0; i < NUM_DATA; i++) {
             int j = i*2;
