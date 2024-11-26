@@ -33,6 +33,11 @@ inline uint32_t get_bank_word(uint32_t b) {
     return word;
 }
 
+inline uint32_t process_cmd(uint32_t cmd) {
+    cmd |= PIN_SDRAM_CKE;
+    return cmd << 8;
+}
+
 // Read: read a burst of data from the currently active row
 // Read with auto precharge: as above, and precharge (close row) when done
 // addr - column address
@@ -44,5 +49,6 @@ inline uint32_t cmd_read(uint16_t addr, uint8_t bank, bool precharge) {
         addr &= ~(1 << 10); // clear A10
     }
 
-    return READ | get_addr_word(addr) | get_bank_word(bank);
+    return process_cmd(READ | get_addr_word(addr) | get_bank_word(bank));
 }
+

@@ -1,10 +1,12 @@
 
+#define PIN_SDRAM_CS (1 << 0*3)
 #define PIN_SDRAM_CAS (1 << 1*3)
 #define PIN_SDRAM_RAS (1 << 2*3)
-#define PIN_SDRAM_WE 0
-#define PIN_SDRAM_CS (1 << 0*3)
-#define PIN_SDRAM_CKE 0
-#define PIN_SDRAM_DQML 0
+#define PIN_SDRAM_WE (1 << 3*3)
+#define PIN_SDRAM_CKE (1 << 4*3)
+#define PIN_SDRAM_BA0 (1 << 5*3)
+#define PIN_SDRAM_BA1 (1 << 6*3)
+#define PIN_SDRAM_DQML (1 << 7*3)
 #define PIN_SDRAM_DQMH 0
 #define PIN_SDRAM_ADDR0 0
 #define PIN_SDRAM_ADDR1 0
@@ -19,5 +21,3 @@
 #define PIN_SDRAM_ADDR10 (2 << 2*3)
 #define PIN_SDRAM_ADDR11 (2 << 3*3)
 #define PIN_SDRAM_ADDR12 (2 << 4*3)
-#define PIN_SDRAM_BA0 0
-#define PIN_SDRAM_BA1 0

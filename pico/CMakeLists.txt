@@ -35,8 +35,8 @@ pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/hello.pio)
 pico_set_program_name(pico-sdram "pico-sdram")
 pico_set_program_version(pico-sdram "0.1")
 
-pico_enable_stdio_uart(pico-sdram 1)
-pico_enable_stdio_usb(pico-sdram 0)
+pico_enable_stdio_uart(pico-sdram 0)
+pico_enable_stdio_usb(pico-sdram 1)
 
 # Add the standard library to the build
 target_link_libraries(pico-sdram

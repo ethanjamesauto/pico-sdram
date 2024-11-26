@@ -56,8 +56,8 @@ int main()
     pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2 | 1u << sm3);
     
 
-#define NUM_CMD 4
-#define NUM_DATA 16
+#define NUM_CMD 6
+#define NUM_DATA 7
     uint32_t cmd[NUM_CMD];  // 16 32-bit words (only the lower 24 bits are used)
     uint32_t data[NUM_DATA]; // 64 16-bit words
     
@@ -69,14 +69,17 @@ int main()
     }
 
     for (int i = 0; i < NUM_DATA; i++) {
-        data[i] = 0x5555aaaa;
+        if (i >= 2 && i < 2+4) // burst size - 2*4=8
+            data[i] = 0x5555aaaa;
+        else
+            data[i] = 0;
     }
-    cmd[0] = CMD_INHIBIT << 8;
-    cmd[1] = NOP << 8;
-    cmd[2] = cmd_read(0xffff, 0, false) << 8;
-    cmd[3] = CMD_INHIBIT << 8;
-
-    data[0] = 0x12345678;
+    cmd[0] = process_cmd(ACTIVATE);
+    cmd[1] = process_cmd(CMD_INHIBIT);
+    cmd[2] = process_cmd(CMD_INHIBIT);
+    cmd[3] = cmd_read(0xffff, 1, false);
+    cmd[4] = process_cmd(CMD_INHIBIT);
+    cmd[5] = process_cmd(CMD_INHIBIT);
 
     while(1) {
         sleep_us(500);
@@ -99,7 +102,7 @@ int main()
 
             // Let the fifos fill up a bit before starting the pios
             // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-            if (i == 7) {
+            if (i == 3) {
                 pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
             }
         }
