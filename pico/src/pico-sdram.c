@@ -70,8 +70,10 @@ int main()
         data[i] = 0x5555aaaa;
     }
 
+    data[0] = 0x12345678;
+
     while(1) {
-        sleep_us(25);
+        sleep_us(50);
         pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, false);
         three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
         data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
@@ -87,7 +89,7 @@ int main()
 
             // Let the fifos fill up a bit before starting the pios
             // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-            if (i == 3) {
+            if (i == 7) {
                 pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
             }
         }
