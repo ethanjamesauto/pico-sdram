@@ -6,6 +6,7 @@
 
 #include "three_74hc595.pio.h"
 #include "data_bus.pio.h"
+#include "clkgen.pio.h"
 
 #define SHIFT_OUT_BASE 19
 #define SIDESET_BASE 17
@@ -31,6 +32,10 @@ int main()
     uint sm2;
     uint offset2;
 
+    PIO pio3;
+    uint sm3;
+    uint offset3;
+
 
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &pio, &sm, &offset, SIDESET_BASE, TOTAL_PINS, true);
     hard_assert(success);
@@ -38,11 +43,16 @@ int main()
     success = pio_claim_free_sm_and_add_program_for_gpio_range(&data_bus_program, &pio2, &sm2, &offset2, DATA_BASE, DATA_WIDTH, true);
     hard_assert(success);
 
+    success = pio_claim_free_sm_and_add_program_for_gpio_range(&clkgen_program, &pio3, &sm3, &offset3, SDRAM_CLK, 1, true);
+    hard_assert(success);
+
     printf("Successfully loaded pio programs\n");
 
     // three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
     // data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
-    pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2);
+    clkgen_program_init(pio3, sm3, offset3, SDRAM_CLK);
+    pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2 | 1u << sm3);
+    
 
 #define NUM_CMD 8
 #define NUM_DATA 16
@@ -64,7 +74,7 @@ int main()
         sleep_us(25);
         pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, false);
         three_74hc595_program_init(pio, sm, offset, SHIFT_OUT_BASE, SIDESET_BASE);
-        data_bus_program_init(pio2, sm2, offset2, DATA_BASE, SDRAM_CLK);
+        data_bus_program_init(pio2, sm2, offset2, DATA_BASE);
         // sleep_ms(40);
 
         for (int i = 0; i < NUM_DATA; i++) {

@@ -1869,18 +1869,7 @@
 			(pintype "bidirectional")
 			(uuid "e0b672de-000d-4cc5-976f-0d10e883cc7d")
 		)
-		(model "C:/Users/ncara/OneDrive/IoT/Tools/KiCad/RP-Pico Libraries/Pico.wrl"
-			(offset
-				(xyz 0 0 0)
-			)
-			(scale
-				(xyz 1 1 1)
-			)
-			(rotate
-				(xyz 0 0 0)
-			)
-		)
-		(model "/Users/ethanjames/Documents/KiCad/8.0/3dmodels/Pico.wrl"
+		(model "/Users/ethan/Documents/KiCad/8.0/3dmodels/Pico.wrl"
 			(offset
 				(xyz 0 0 0)
 			)
