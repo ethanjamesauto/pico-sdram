@@ -21,3 +21,13 @@
 #define PIN_SDRAM_ADDR10 (2 << 2*3)
 #define PIN_SDRAM_ADDR11 (2 << 3*3)
 #define PIN_SDRAM_ADDR12 (2 << 4*3)
+
+#define SHIFT_OUT_BASE 19
+#define SIDESET_BASE 17
+
+#define DATA_BASE 0
+#define DATA_WIDTH 16
+
+#define TOTAL_PINS 5
+
+#define SDRAM_CLK 22
