@@ -33,7 +33,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
-    sm_config_set_out_shift(&c, true, true, 24); // shift_right=true, autopull=true, pull_threshold=24
+    sm_config_set_out_shift(&c, false, true, 24); // shift_right=true, autopull=true, pull_threshold=24
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
     sm_config_set_clkdiv(&c, CLKDIV);
 

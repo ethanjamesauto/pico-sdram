@@ -8,6 +8,8 @@
 #include "data_bus.pio.h"
 #include "clkgen.pio.h"
 
+#include "sdram_cmd.h"
+
 #define SHIFT_OUT_BASE 19
 #define SIDESET_BASE 17
 
@@ -54,7 +56,7 @@ int main()
     pio_clkdiv_restart_sm_mask(pio, 1u << sm | 1u << sm2 | 1u << sm3);
     
 
-#define NUM_CMD 8
+#define NUM_CMD 4
 #define NUM_DATA 16
     uint32_t cmd[NUM_CMD];  // 16 32-bit words (only the lower 24 bits are used)
     uint32_t data[NUM_DATA]; // 64 16-bit words
@@ -69,6 +71,10 @@ int main()
     for (int i = 0; i < NUM_DATA; i++) {
         data[i] = 0x5555aaaa;
     }
+    cmd[0] = CMD_INHIBIT << 8;
+    cmd[1] = NOP << 8;
+    cmd[2] = cmd_read(0xffff, 0, false) << 8;
+    cmd[3] = CMD_INHIBIT << 8;
 
     data[0] = 0x12345678;
 
