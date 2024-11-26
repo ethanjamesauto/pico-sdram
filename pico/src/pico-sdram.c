@@ -57,9 +57,9 @@ int main()
     
 
 #define NUM_CMD 6
-#define NUM_DATA 7
+#define NUM_DATA 14
     uint32_t cmd[NUM_CMD];  // 16 32-bit words (only the lower 24 bits are used)
-    uint32_t data[NUM_DATA]; // 64 16-bit words
+    uint16_t data[NUM_DATA]; // 64 16-bit words
     
     for (int i = 0; i < NUM_CMD; i++) {
         cmd[i] = 0xaaaaaaaa;
@@ -69,10 +69,12 @@ int main()
     }
 
     for (int i = 0; i < NUM_DATA; i++) {
-        if (i >= 2 && i < 2+4) // burst size - 2*4=8
-            data[i] = 0x5555aaaa;
-        else
+        if (i >= 4 && i < 4+8) {// burst size - 2*4=8
+            data[i] = 0xaaaa;
+            if (i & 1) data[i] = ~data[i];
+        } else {
             data[i] = 0;
+        }
     }
     cmd[0] = process_cmd(ACTIVATE);
     cmd[1] = process_cmd(CMD_INHIBIT);
@@ -94,17 +96,16 @@ int main()
         pio_sm_exec(pio, sm, offset);
         pio_sm_exec(pio2, sm2, offset2);
 
-        for (int i = 0; i < NUM_DATA; i++) {
-            int j = i*2;
-            if (j + 1 < NUM_CMD) {
-                pio_sm_put_blocking(pio, sm, cmd[j]);
-                pio_sm_put_blocking(pio, sm, cmd[j + 1]);
+        for (int i = 0; i < NUM_DATA; i += 2) {
+            if (i + 1 < NUM_CMD) {
+                pio_sm_put_blocking(pio, sm, cmd[i]);
+                pio_sm_put_blocking(pio, sm, cmd[i + 1]);
             }
-            pio_sm_put_blocking(pio2, sm2, data[i]);
+            pio_sm_put_blocking(pio2, sm2, (data[i + 1] << 16) | data[i]);
 
             // Let the fifos fill up a bit before starting the pios
             // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-            if (i == 3) {
+            if (i == 2) {
                 pio_set_sm_mask_enabled(pio, 1u << sm | 1u << sm2, true);
             }
         }

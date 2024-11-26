@@ -7,6 +7,24 @@
 #define WRITE (PIN_SDRAM_RAS)                               // for write and write with auto precharge
 #define ACTIVATE (PIN_SDRAM_CAS | PIN_SDRAM_WE)
 
+typedef struct {
+    PIO pio;
+    uint sm;
+    uint offset;
+    
+    PIO pio2;
+    uint sm2;
+    uint offset2;
+
+    PIO pio3;
+    uint sm3;
+    uint offset3;
+} sdram_sm_t;
+
+void init();
+
+void exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len);
+
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
     uint32_t word = 0;
