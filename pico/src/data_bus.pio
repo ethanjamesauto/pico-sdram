@@ -7,15 +7,11 @@
 .program data_bus
 
 wait 1 gpio 22
-wait 0 gpio 22              [5]
+wait 0 gpio 22              [6]
 
 .wrap_target
 
-set x, 31                   ; number of transactions - 1
-
-loop:
-    out pins, 16            [7]
-    jmp x-- loop            [7]
+out pins, 16            [15]
 
 .wrap
 
