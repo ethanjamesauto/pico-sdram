@@ -1,6 +1,6 @@
 # pico-sdram
 
-This project attempts to interface a Raspberry Pi Pico with a [16MB SDRAM IC](https://www.winbond.com/resource-files/w9825g6kh_a04.pdf).
+This project attempts to interface a Raspberry Pi Pico with a [32MB SDRAM IC](https://www.winbond.com/resource-files/w9825g6kh_a04.pdf).
 
 <p>
   <img src="images/p0.png" width="200" />
