@@ -6,8 +6,8 @@
 
 .program data_bus
 
-wait 1 gpio 22
-wait 0 gpio 22              [6]
+wait 0 gpio 22
+wait 1 gpio 22              [6]
 
 .wrap_target
 
