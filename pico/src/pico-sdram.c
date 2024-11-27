@@ -43,7 +43,8 @@ int main()
 
     while(1) {
         sleep_ms(50);
-        // sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
+        sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
+        sleep_ms(1);
         refresh_all();
     }
 
