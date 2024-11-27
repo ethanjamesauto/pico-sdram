@@ -5,19 +5,20 @@
 ; sideset pins - rclk | srclk - (register clock | serial clock)
 .side_set 2
 
-wait 0 gpio 22          side 0b00
+wait 0 gpio 22          side 0b00 [1]
 wait 1 gpio 22          side 0b00 [6]   ; TODO: figure out correct delay
+nop                     side 0b00 [6]
 
 .wrap_target
 
-out pins, 3             side 0b10 ; shift out 3 bits of data to the 3 serial data lines
-set x, 6                side 0b01 ; number of bits to shift out minus 2
+out pins, 3             side 0b10 [1]   ; shift out 3 bits of data to the 3 serial data lines
+set x, 6                side 0b01 [1]   ; number of bits to shift out minus 2
 
 loop:
-    out pins, 3         side 0b00 ; shift out 3 bits of data to the 3 serial data lines
-    jmp x-- loop        side 0b01 ; loop until we're done shifting
+    out pins, 3         side 0b00 [1]   ; shift out 3 bits of data to the 3 serial data lines
+    jmp x-- loop        side 0b01 [1]   ; loop until we're done shifting
 
-.wrap                             ; wrap around to the beginning of the program (.wrap_target)
+.wrap                                   ; wrap around to the beginning of the program (.wrap_target)
 
 % c-sdk {
 
@@ -35,7 +36,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     sm_config_set_sideset_pins(&c, sidepin);
     sm_config_set_out_shift(&c, false, true, 24); // shift_right=true, autopull=true, pull_threshold=24
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
-    sm_config_set_clkdiv(&c, CLKDIV);
+    sm_config_set_clkdiv(&c, CLKDIV >> 1);
 
     // Set this pin's GPIO function (connect PIO to the pad)
     for (int i = 0; i < NUM_PINS; i++) {
