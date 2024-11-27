@@ -50,3 +50,33 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
         }
     }
 }
+
+void refresh_all() {
+    // First, turn off the two state machines
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+
+    // Reset both program counters to 0 by executing a 
+    // JMP instruction to the starting offset of each program
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
+    // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+
+    uint32_t cmd[5];
+    cmd[0] = process_cmd(ACTIVATE);
+    cmd[1] = process_cmd(CMD_INHIBIT);
+    cmd[2] = process_cmd(PRECHARGE_ALL);
+    cmd[3] = process_cmd(CMD_INHIBIT);
+    cmd[4] = process_cmd(AUTO_REFRESH);
+
+    for (int i = 0; i < 4; i++) {
+        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
+        if (i == 3) {
+            pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+        }
+    }
+    
+    for (int i = 0; i < 8192; i++) {
+        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[4]);
+    }
+
+    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[1]);
+}

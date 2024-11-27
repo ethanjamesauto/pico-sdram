@@ -6,6 +6,10 @@
 #define READ (PIN_SDRAM_RAS | PIN_SDRAM_WE)                 // for read and read with auto precharge
 #define WRITE (PIN_SDRAM_RAS)                               // for write and write with auto precharge
 #define ACTIVATE (PIN_SDRAM_CAS | PIN_SDRAM_WE)
+#define PRECHARGE (PIN_SDRAM_CAS)
+#define PRECHARGE_ALL (PIN_SDRAM_CAS | PIN_SDRAM_ADDR10)
+#define AUTO_REFRESH (PIN_SDRAM_WE)
+#define LOAD_MODE 0
 
 typedef struct {
     PIO pio;
@@ -21,9 +25,21 @@ typedef struct {
     uint offset3;
 } sdram_sm_t;
 
+/**
+ * Initialize the SDRAM state machines
+ */
 void sdram_init();
 
+/**
+ * Execute a sequence of commands and data
+ */
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len);
+
+/**
+ * Run an auto refresh command on all banks
+ * Calling this every 60-ish ms is probably a good idea
+ */
+void refresh_all();
 
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
