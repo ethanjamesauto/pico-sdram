@@ -62,6 +62,11 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
  */
 void refresh_all();
 
+/**
+ * Run the power-up initialization sequence
+ */
+void sdram_startup();
+
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
     uint32_t word = 0;

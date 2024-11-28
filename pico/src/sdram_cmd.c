@@ -10,6 +10,19 @@
 // variable for storing all pio sm offsets, etc.
 sdram_sm_t sdram_sm;
 
+void sm_resync() {
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+
+    // Reset both program counters to 0 by executing a 
+    // JMP instruction to the starting offset of each program
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
+    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+}
+
+void sm_start() {
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+}
+
 void sdram_init() {
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.pio, &sdram_sm.sm, &sdram_sm.offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
     hard_assert(success);
@@ -79,4 +92,29 @@ void refresh_all() {
     }
 
     pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[1]);
+}
+
+void sdram_startup() {
+    sm_resync();
+    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, process_cmd(NOP | PIN_SDRAM_DQMH | PIN_SDRAM_DQML));
+    sm_start();
+    sleep_us(100);
+
+    uint32_t cmd[6];
+    cmd[0] = process_cmd(PRECHARGE_ALL);
+    cmd[1] = process_cmd(AUTO_REFRESH);
+    cmd[2] = process_cmd(AUTO_REFRESH);
+
+    uint32_t mode = get_mode_word(MODE_BURST_LEN_1, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
+    cmd[3] = process_cmd(mode | LOAD_MODE);
+    cmd[4] = process_cmd(CMD_INHIBIT);
+    cmd[5] = process_cmd(AUTO_REFRESH);
+
+    sm_resync();
+    for (int i = 0; i < 6; i++) {
+        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
+        if (i == 2) {
+            pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+        }
+    }
 }

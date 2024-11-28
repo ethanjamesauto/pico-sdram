@@ -45,10 +45,11 @@ int main()
     cmd[5] = process_cmd(CMD_INHIBIT);
 
     while(1) {
+        // sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
+        //sleep_ms(1);
+        //refresh_all();
+        sdram_startup();
         sleep_ms(50);
-        sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
-        sleep_ms(1);
-        refresh_all();
     }
 
     return 0;
