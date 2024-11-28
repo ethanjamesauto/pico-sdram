@@ -41,7 +41,7 @@ int main()
     uint32_t mode = get_mode_word(MODE_BURST_LEN_1, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
     cmd[3] = process_cmd(mode | LOAD_MODE);
 
-    cmd[4] = process_cmd(CMD_INHIBIT);
+    cmd[4] = cmd_read(0b10000001, 0b11, true);
     cmd[5] = process_cmd(CMD_INHIBIT);
 
     while(1) {
