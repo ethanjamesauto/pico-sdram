@@ -18,13 +18,6 @@ int main()
 #define NUM_DATA 14
     uint32_t cmd[NUM_CMD];  // 16 32-bit words (only the lower 24 bits are used)
     uint16_t data[NUM_DATA]; // 64 16-bit words
-    
-    for (int i = 0; i < NUM_CMD; i++) {
-        cmd[i] = 0xaaaaaaaa;
-        if (i % 2 == 0) {
-            cmd[i] = ~cmd[i];
-        }
-    }
 
     for (int i = 0; i < NUM_DATA; i++) {
         if (i >= 4 && i < 4+8) {// burst size - 2*4=8
@@ -46,8 +39,8 @@ int main()
 
     while(1) {
         // sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
-        //sleep_ms(1);
-        //refresh_all();
+        // refresh_all();
+        // sleep_ms(1);
         sdram_startup();
         sleep_ms(50);
     }
