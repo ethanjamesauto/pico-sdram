@@ -95,7 +95,7 @@ inline uint32_t process_cmd(uint32_t cmd) {
 
 /**
  * Get a 32-bit word with the mode register settings
- * Returns a 32-bit word with [ba[1:0], addr[12:0]] signals
+ * Returns a word that can be ORed with LOAD_MODE to load the mode register
  */
 inline uint32_t get_mode_word(uint8_t burst_len, uint8_t addr_mode, uint8_t cas_latency, uint8_t write_mode) {
     uint32_t word = 0;
