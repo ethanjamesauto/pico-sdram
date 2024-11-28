@@ -1,2 +1,2 @@
 
-#define CLKDIV 125.0/62.5
+#define CLKDIV 125.0/62.5*4
