@@ -11,6 +11,27 @@
 #define AUTO_REFRESH (PIN_SDRAM_WE)
 #define LOAD_MODE 0
 
+// bit positions in the sdram command register
+#define MODE_BURST_LEN 0
+#define MODE_ADDR_MODE 3
+#define MODE_CAS_LATENCY 4
+#define MODE_WRITE_MODE 9
+
+#define MODE_BURST_LEN_1 0b000
+#define MODE_BURST_LEN_2 0b001
+#define MODE_BURST_LEN_4 0b010
+#define MODE_BURST_LEN_8 0b011
+#define MODE_BURST_LEN_FULL 0b111
+
+#define MODE_ADDR_MODE_SEQUENTIAL 0
+#define MODE_ADDR_MODE_INTERLEAVED 1
+
+#define MODE_CAS_LATENCY_2 0b010
+#define MODE_CAS_LATENCY_3 0b011
+
+#define MODE_WRITE_MODE_BURST 0
+#define MODE_WRITE_MODE_SINGLE 1
+
 typedef struct {
     PIO pio;
     uint sm;
@@ -70,6 +91,19 @@ inline uint32_t get_bank_word(uint32_t b) {
 inline uint32_t process_cmd(uint32_t cmd) {
     cmd |= PIN_SDRAM_CKE;
     return cmd << 8;
+}
+
+/**
+ * Get a 32-bit word with the mode register settings
+ * Returns a 32-bit word with [ba[1:0], addr[12:0]] signals
+ */
+inline uint32_t get_mode_word(uint8_t burst_len, uint8_t addr_mode, uint8_t cas_latency, uint8_t write_mode) {
+    uint32_t word = 0;
+    word |= (burst_len & 0b111) << MODE_BURST_LEN;
+    word |= (addr_mode & 1) << MODE_ADDR_MODE;
+    word |= (cas_latency & 0b111) << MODE_CAS_LATENCY;
+    word |= (write_mode & 1) << MODE_WRITE_MODE;
+    return get_addr_word(word);
 }
 
 // Read: read a burst of data from the currently active row
