@@ -63,18 +63,20 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
-    const int num_cmds = 5;
-    const int num_data = 10;
+    const int num_cmds = 4;
+    const int num_data = 5;
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
-    dat[9] = data;
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    dat[3] = data;
+    
     cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
     cmd[1] = process_cmd(CMD_INHIBIT);
 
     // ADDR10 results in an auto-precharge
     cmd[2] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
     cmd[3] = process_cmd(CMD_INHIBIT);
-    cmd[4] = process_cmd(AUTO_REFRESH);
 
     sdram_exec(cmd, dat, num_cmds, num_data);
 }
