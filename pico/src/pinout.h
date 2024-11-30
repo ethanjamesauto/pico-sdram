@@ -7,11 +7,12 @@
 #define PIN_SDRAM_CKE (1 << 4*3)
 #define PIN_SDRAM_DQML (1 << 5*3)
 #define PIN_SDRAM_DQMH (1 << 6*3)
+#define PIN_SDRAM_ADDR10 (1 << 7*3)
 
 // shift register 2
 #define PIN_SDRAM_ADDR8 (2 << 0*3)
 #define PIN_SDRAM_ADDR9 (2 << 1*3)
-#define PIN_SDRAM_ADDR10 (2 << 2*3)
+// #define PIN_SDRAM_ADDR10 (2 << 2*3)
 #define PIN_SDRAM_ADDR11 (2 << 3*3)
 #define PIN_SDRAM_ADDR12 (2 << 4*3)
 #define PIN_SDRAM_BA0 (2 << 5*3)
