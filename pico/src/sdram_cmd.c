@@ -71,8 +71,7 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
     switch_bus_mode(true); // set data bus to output mode
 
-    // Note: I'm 99% sure that these calls can't be sped up any further
-    // First, turn off the two state machines
+    // sync the state machines
     sm_resync();
 
     for (int i = 0; i < data_len; i += 2) {
@@ -88,12 +87,13 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
     }
 }
 
+// TODO: no need to store the data in the data array, just read it directly from the fifo
+// same for sdram_exec
 void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
 
     switch_bus_mode(false); // set data bus to input mode
 
-    // Note: I'm 99% sure that these calls can't be sped up any further
-    // First, turn off the two state machines
+    // sync the state machines and clear the rx fifo
     sm_resync_read();
 
     int read_ptr = 0;
@@ -109,6 +109,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
         // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
         if (i == 2) sm_start();
 
+        // if there's anything in the rx fifo, read it
         while (read_ptr < data_len && pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
             uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
             data[read_ptr++] = d & 0xffff;
@@ -116,6 +117,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
         }
     }
 
+    // keep reading until we've read all the data
     while (read_ptr < data_len) {
         uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
         data[read_ptr++] = d & 0xffff;
@@ -123,6 +125,9 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     }
 }
 
+/**
+ * Wait for all operations to finish
+ */
 void sdram_wait() {
     while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false || pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
         tight_loop_contents();
