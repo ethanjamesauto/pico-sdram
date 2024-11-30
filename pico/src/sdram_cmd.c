@@ -7,6 +7,8 @@
 #include "data_bus.pio.h"
 #include "clkgen.pio.h"
 
+#include <stdio.h>
+
 // variable for storing all pio sm offsets, etc.
 sdram_sm_t sdram_sm;
 
@@ -25,6 +27,21 @@ void sm_resync() {
     // JMP instruction to the starting offset of each program
     pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
     pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+}
+
+void sm_resync_read() {
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+
+    // Reset both program counters to 0 by executing a 
+    // JMP instruction to the starting offset of each program
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
+    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2 + 3); // the read sm is at offset 3
+
+    // empty rx fifo
+    // TODO: better way to do this?
+    while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+        pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
+    }
 }
 
 void sm_start() {
@@ -46,18 +63,17 @@ void sdram_init() {
     clkgen_program_init(sdram_sm.pio3, sdram_sm.sm3, sdram_sm.offset3, SDRAM_CLK);
     pio_clkdiv_restart_sm_mask(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2 | 1u << sdram_sm.sm3);
 
-    sdram_sm.bus_mode = true;
+    sdram_sm.bus_mode = true; // default to output mode
+    switch_bus_mode(false); // set data bus to input mode
 }
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
+
+    switch_bus_mode(true); // set data bus to output mode
+
     // Note: I'm 99% sure that these calls can't be sped up any further
     // First, turn off the two state machines
     sm_resync();
-
-    // Reset both program counters to 0 by executing a 
-    // JMP instruction to the starting offset of each program
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
 
     for (int i = 0; i < data_len; i += 2) {
         if (i + 1 < cmd_len) {
@@ -73,14 +89,14 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 }
 
 void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
+
+    switch_bus_mode(false); // set data bus to input mode
+
     // Note: I'm 99% sure that these calls can't be sped up any further
     // First, turn off the two state machines
-    sm_resync();
+    sm_resync_read();
 
-    // Reset both program counters to 0 by executing a 
-    // JMP instruction to the starting offset of each program
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+    int read_ptr = 0;
 
     for (int i = 0; i < data_len; i += 2) {
         if (i + 1 < cmd_len) {
@@ -92,6 +108,18 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
         // Let the fifos fill up a bit before starting the pios
         // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
         if (i == 2) sm_start();
+
+        while (read_ptr < data_len && pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+            uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
+            data[read_ptr++] = d & 0xffff;
+            data[read_ptr++] = d >> 16;
+        }
+    }
+
+    while (read_ptr < data_len) {
+        uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
+        data[read_ptr++] = d & 0xffff;
+        data[read_ptr++] = d >> 16;
     }
 }
 
@@ -122,7 +150,7 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
 
 uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     const int num_cmds = 4;
-    const int num_data = 5;
+    const int num_data = 8;
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
 
@@ -136,7 +164,7 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     cmd[3] = process_cmd(CMD_INHIBIT);
 
     sdram_exec_read(cmd, dat, num_cmds, num_data);
-    return dat[3];
+    return dat[3 + 3]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
 void refresh_all() {

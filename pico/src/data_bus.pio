@@ -22,7 +22,7 @@ wait 1 gpio 22              [14] ; 6 + 8 (8 is half of the 16-cycle clock period
 
 input_loop:
     in pins, 16             [14]
-    jmp x-- input_loop
+    jmp input_loop
 
 % c-sdk {
 
@@ -43,7 +43,7 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     sm_config_set_out_shift(&c, true, true, 32); // shift_right=true, autopull=true, pull_threshold=32
     sm_config_set_in_shift(&c, true, true, 32); // shift_right=true, autopush=true, pull_threshold=32
     // sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
-    
+
     sm_config_set_clkdiv(&c, CLKDIV);
 
     // Set this pin's GPIO function (connect PIO to the pad)

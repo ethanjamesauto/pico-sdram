@@ -21,6 +21,7 @@ int main()
         sdram_write1(0x3fffff, 0, 0x13);
         sdram_wait();
         uint16_t data = sdram_read1(0x3fffff, 0);
+        printf("Read data: %d\n", data);
         sleep_ms(50);
     }
 
