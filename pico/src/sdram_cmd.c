@@ -85,6 +85,12 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     }
 }
 
+void sdram_wait() {
+    while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false || pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+        tight_loop_contents();
+    }
+}
+
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     const int num_cmds = 4;
     const int num_data = 5;
