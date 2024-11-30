@@ -32,10 +32,10 @@ for(var i = 0; i < c; i++){
 function Value2Text(flag, value) {
   var lower = value & 0xf;
   var addr10 = ((value >> 7) & 1) > 0;
-  if (lower & 1) return "-";
+  if (lower & 1) return "";
   if (lower == 14) return "NOP";
   if (lower == 6) return "BURST_TERM";
-  if (lower == 10) return "READ";
+  if (lower == 10) return addr10 ? "READ_PRECHARGE" : "READ";
   if (lower == 2) return addr10 ? "WRITE_PRECHARGE" : "WRITE";
   if (lower == 12) return "ACTIVATE";
   if (lower == 4) return "PRECHARGE";
