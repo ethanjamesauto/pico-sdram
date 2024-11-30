@@ -1,8 +1,8 @@
 
 // shift register 1
 #define PIN_SDRAM_CS (1 << 0*3)
-#define PIN_SDRAM_CAS (1 << 1*3)
-#define PIN_SDRAM_RAS (1 << 2*3)
+#define PIN_SDRAM_RAS (1 << 1*3)
+#define PIN_SDRAM_CAS (1 << 2*3)
 #define PIN_SDRAM_WE (1 << 3*3)
 #define PIN_SDRAM_CKE (1 << 4*3)
 #define PIN_SDRAM_DQML (1 << 5*3)

@@ -42,7 +42,7 @@ void sdram_init() {
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
     // Note: I'm 99% sure that these calls can't be sped up any further
     // First, turn off the two state machines
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+    sm_resync();
 
     // Reset both program counters to 0 by executing a 
     // JMP instruction to the starting offset of each program
@@ -58,10 +58,25 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
         // Let the fifos fill up a bit before starting the pios
         // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-        if (i == 2) {
-            pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
-        }
+        if (i == 2) sm_start();
     }
+}
+
+void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
+    const int num_cmds = 5;
+    const int num_data = 10;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+    dat[9] = data;
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+    cmd[4] = process_cmd(AUTO_REFRESH);
+
+    sdram_exec(cmd, dat, num_cmds, num_data);
 }
 
 void refresh_all() {
@@ -96,7 +111,7 @@ void refresh_all() {
 
 void sdram_startup() {
     sm_resync();
-    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, process_cmd(NOP | PIN_SDRAM_DQMH | PIN_SDRAM_DQML));
+    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, process_cmd(CMD_INHIBIT | PIN_SDRAM_DQMH | PIN_SDRAM_DQML));
     sm_start();
     sleep_us(100);
 
@@ -113,8 +128,6 @@ void sdram_startup() {
     sm_resync();
     for (int i = 0; i < 6; i++) {
         pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-        if (i == 2) {
-            pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
-        }
+        if (i == 2) sm_start();
     }
 }

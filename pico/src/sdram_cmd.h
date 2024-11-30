@@ -67,6 +67,16 @@ void refresh_all();
  */
 void sdram_startup();
 
+/**
+ * Write a single 16-bit word to the SDRAM
+ * The mode register MUST be configured correctly before calling this function
+ * addr - 22-bit address
+ * addr[8:0] - column address
+ * addr[21:9] - row address
+ * bank[1:0] - bank address
+ */
+void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data);
+
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
     uint32_t word = 0;
@@ -123,5 +133,19 @@ inline uint32_t cmd_read(uint16_t addr, uint8_t bank, bool precharge) {
     }
 
     return process_cmd(READ | get_addr_word(addr) | get_bank_word(bank));
+}
+
+// Write: write a burst of data to the currently active row
+// Write with auto precharge: as above, and precharge (close row) when done
+// addr - column address
+// bank - bank address
+inline uint32_t cmd_write(uint16_t addr, uint8_t bank, bool precharge) {
+    if (precharge) {
+        addr |= 1 << 10; // set A10
+    } else {
+        addr &= ~(1 << 10); // clear A10
+    }
+
+    return process_cmd(WRITE | get_addr_word(addr) | get_bank_word(bank));
 }
 
