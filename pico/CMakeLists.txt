@@ -57,7 +57,7 @@ target_link_libraries(pico-sdram
 pico_add_extra_outputs(pico-sdram)
 
 add_custom_command(TARGET pico-sdram POST_BUILD
-   COMMAND powershell.exe -File "C:/Users/Ethan/Desktop/picoFlashTool_WinPS.ps1"# ${CMAKE_CURRENT_SOURCE_DIR}/picoFlashTool_WinPS.ps1
+   COMMAND powershell.exe -File "C:/picoFlashTool_WinPS.ps1"# ${CMAKE_CURRENT_SOURCE_DIR}/picoFlashTool_WinPS.ps1
    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
    COMMENT "Flashing Pico..."
 )
