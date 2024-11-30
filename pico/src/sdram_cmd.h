@@ -47,6 +47,9 @@ typedef struct {
     PIO pio3;
     uint sm3;
     uint offset3;
+
+    // true - output, false - input
+    bool bus_mode;
 } sdram_sm_t;
 
 /**

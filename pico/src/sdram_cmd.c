@@ -12,7 +12,10 @@ sdram_sm_t sdram_sm;
 
 // switch bus mode between input and output
 void switch_bus_mode(bool is_out) {
-    pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
+    if (is_out != sdram_sm.bus_mode) {
+        sdram_sm.bus_mode = is_out;
+        pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
+    }
 }
 
 void sm_resync() {
@@ -42,6 +45,8 @@ void sdram_init() {
     data_bus_program_init(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2, DATA_BASE);
     clkgen_program_init(sdram_sm.pio3, sdram_sm.sm3, sdram_sm.offset3, SDRAM_CLK);
     pio_clkdiv_restart_sm_mask(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2 | 1u << sdram_sm.sm3);
+
+    sdram_sm.bus_mode = true;
 }
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
