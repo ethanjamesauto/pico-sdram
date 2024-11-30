@@ -10,6 +10,11 @@
 // variable for storing all pio sm offsets, etc.
 sdram_sm_t sdram_sm;
 
+// switch bus mode between input and output
+void switch_bus_mode(bool is_out) {
+    pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
+}
+
 void sm_resync() {
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
 

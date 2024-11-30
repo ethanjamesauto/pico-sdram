@@ -6,14 +6,23 @@
 
 .program data_bus
 
+; output state machine code
 wait 0 gpio 22
-wait 1 gpio 22              [6]
+wait 1 gpio 22              [6] ; we output data on the falling edge of the clock
 
 .wrap_target
 
-out pins, 16            [15]
+out pins, 16                [15]
 
 .wrap
+
+; input state machine code
+wait 0 gpio 22                   ; Note: this is instruction 3
+wait 1 gpio 22              [14] ; 6 + 8 (8 is half of the 16-cycle clock period, because we sample on the rising edge)
+
+input_loop:
+    in pins, 16             [14]
+    jmp x-- input_loop
 
 % c-sdk {
 
@@ -27,8 +36,14 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     // Map the state machine's OUT pin group to one pin, namely the `pin`
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, BUS_WIDTH);
+
+    sm_config_set_in_pins(&c, pin);
+    sm_config_set_in_pin_count(&c, BUS_WIDTH);
+
     sm_config_set_out_shift(&c, true, true, 32); // shift_right=true, autopull=true, pull_threshold=32
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
+    sm_config_set_in_shift(&c, true, true, 32); // shift_right=true, autopush=true, pull_threshold=32
+    // sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+    
     sm_config_set_clkdiv(&c, CLKDIV);
 
     // Set this pin's GPIO function (connect PIO to the pad)

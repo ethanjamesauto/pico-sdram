@@ -33,14 +33,17 @@
 #define MODE_WRITE_MODE_SINGLE 1
 
 typedef struct {
+    // cmd/addr bus sm
     PIO pio;
     uint sm;
     uint offset;
     
+    // data bus sm
     PIO pio2;
     uint sm2;
     uint offset2;
 
+    // clock generator sm
     PIO pio3;
     uint sm3;
     uint offset3;
@@ -90,6 +93,12 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data);
  * bank[1:0] - bank address
  */
 uint16_t sdram_read1(uint32_t addr, uint8_t bank);
+
+/**
+ * Change the direction of the data bus
+ * is_out - true to set data bus to output mode, false to set to input mode
+ */
+void switch_bus_mode(bool is_out);
 
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
