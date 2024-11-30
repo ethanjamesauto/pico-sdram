@@ -77,6 +77,15 @@ void sdram_startup();
  */
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data);
 
+/**
+ * Read a single 16-bit word from the SDRAM
+ * addr - 22-bit address
+ * addr[8:0] - column address
+ * addr[21:9] - row address
+ * bank[1:0] - bank address
+ */
+uint16_t sdram_read1(uint32_t addr, uint8_t bank);
+
 // what a beauty
 inline uint32_t get_addr_word(uint32_t a) {
     uint32_t word = 0;

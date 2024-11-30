@@ -16,9 +16,10 @@ int main()
     while(1) {
         // sdram_exec(cmd, data, NUM_CMD, NUM_DATA);
         // refresh_all();
-        sdram_write1(0x3fffff, 0, 0x13);
-        sleep_ms(1);
-        sdram_startup();
+        //sdram_write1(0x3fffff, 0, 0x13);
+        uint16_t data = sdram_read1(0x3fffff, 0);
+        // sleep_ms(1);
+        // sdram_startup();
         sleep_ms(50);
     }
 

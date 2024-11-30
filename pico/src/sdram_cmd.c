@@ -62,6 +62,29 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
     }
 }
 
+void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
+    // Note: I'm 99% sure that these calls can't be sped up any further
+    // First, turn off the two state machines
+    sm_resync();
+
+    // Reset both program counters to 0 by executing a 
+    // JMP instruction to the starting offset of each program
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
+    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+
+    for (int i = 0; i < data_len; i += 2) {
+        if (i + 1 < cmd_len) {
+            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
+            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
+        }
+        // pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
+
+        // Let the fifos fill up a bit before starting the pios
+        // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
+        if (i == 2) sm_start();
+    }
+}
+
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     const int num_cmds = 4;
     const int num_data = 5;
@@ -70,7 +93,7 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
 
     for (int i = 0; i < num_data; i++) dat[i] = 0;
     dat[3] = data;
-    
+
     cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
     cmd[1] = process_cmd(CMD_INHIBIT);
 
@@ -79,6 +102,25 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     cmd[3] = process_cmd(CMD_INHIBIT);
 
     sdram_exec(cmd, dat, num_cmds, num_data);
+}
+
+uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
+    const int num_cmds = 4;
+    const int num_data = 5;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+    return dat[3];
 }
 
 void refresh_all() {
