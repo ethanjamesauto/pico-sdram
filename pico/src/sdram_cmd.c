@@ -145,6 +145,9 @@ void sdram_wait() {
     while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false || pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
         tight_loop_contents();
     }
+    // this is needed to allow the final commands to be executed after the tx fifos are empty
+    // TODO: find a more elegant solution
+    sleep_us(1);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {

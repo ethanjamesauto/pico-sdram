@@ -15,9 +15,7 @@ int main()
     while(1) {
         for (int i = 0; i < 10; i++) {
             sdram_write1(0x3fffff, 0, 0x13);
-            // sleep_us(10);
             uint16_t data = sdram_read1(0x3fffff, 0); 
-            sleep_us(1); // TODO: get rid of this
         }
         refresh_all();
     }
