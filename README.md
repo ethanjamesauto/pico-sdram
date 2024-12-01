@@ -44,4 +44,23 @@ function Value2Text(flag, value) {
   return "X";
 }
 Value2Text(0,0x82)
+<<<<<<< HEAD
 ```
+=======
+
+function Value2Text(flag, value) {
+  var lower = value & 0xf;
+  var addr10 = ((value >> 7) & 1) > 0;
+  if (lower & 1) return "";
+  if (lower == 14) return "NOP";
+  if (lower == 6) return "BURST_T";
+  if (lower == 10) return addr10 ? "READ_P" : "READ";
+  if (lower == 2) return addr10 ? "WRITE_P" : "WRITE";
+  if (lower == 12) return "ACTIVATE";
+  if (lower == 4) return "PRCHG";
+  if (lower == 8) return "A_RFRSH";
+  if (lower == 0) return "MODE";
+  return "X";
+}
+```
+>>>>>>> 2f3b819 (Update readme)
