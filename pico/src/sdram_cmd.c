@@ -27,6 +27,12 @@ void sm_resync() {
     // JMP instruction to the starting offset of each program
     pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
     pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+
+    // empty rx fifo
+    // TODO: better way to do this?
+    while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+        pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
+    }
 }
 
 void sm_resync_read() {
@@ -85,6 +91,9 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
         // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
         if (i == 2) sm_start();
     }
+
+    // wait for the last data to be sent
+    sdram_wait();
 }
 
 // TODO: no need to store the data in the data array, just read it directly from the fifo
@@ -123,6 +132,10 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
         data[read_ptr++] = d & 0xffff;
         data[read_ptr++] = d >> 16;
     }
+
+    // wait for the last data to be sent
+    // This should never be necessary, but it's here just in case
+    sdram_wait();
 }
 
 /**
@@ -200,6 +213,9 @@ void refresh_all() {
     }
 
     pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[1]);
+
+    // wait for the refresh to finish
+    sdram_wait();
 }
 
 void sdram_startup() {
@@ -223,4 +239,7 @@ void sdram_startup() {
         pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
         if (i == 2) sm_start();
     }
+
+    // wait for the refresh to finish
+    sdram_wait();
 }
