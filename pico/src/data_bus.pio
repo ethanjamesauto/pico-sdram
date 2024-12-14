@@ -52,7 +52,8 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     }
 
     // Set the pin direction to output at the PIO
-    pio_sm_set_consecutive_pindirs(pio, sm, pin, BUS_WIDTH, true);
+    // Update: we do this at a different time now
+    // pio_sm_set_consecutive_pindirs(pio, sm, pin, BUS_WIDTH, true);
 
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
