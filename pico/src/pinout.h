@@ -1,4 +1,4 @@
-#define CONFIG_DEBUG
+// #define CONFIG_DEBUG
 
 #ifdef CONFIG_DEBUG
 
@@ -57,34 +57,35 @@
 // H - 7
 
 // shift register 3 (SER3)
+#define PIN_SDRAM_DQML (4 << 0*3)
+#define PIN_SDRAM_DQMH (4 << 1*3)
+#define PIN_SDRAM_CKE (4 << 2*3)
 #define PIN_SDRAM_CS (4 << 3*3)
 #define PIN_SDRAM_RAS (4 << 4*3)
 #define PIN_SDRAM_CAS (4 << 5*3)
 #define PIN_SDRAM_WE (4 << 6*3)
-#define PIN_SDRAM_CKE (4 << 2*3)
-#define PIN_SDRAM_DQML (4 << 0*3)
-#define PIN_SDRAM_DQMH (4 << 1*3)
 
 // shift register 2 (SER2)
 #define PIN_SDRAM_BA0 (1 << 0*3)
-#define PIN_SDRAM_BA1 (1 << 7*3)
-#define PIN_SDRAM_ADDR0 (1 << 5*3)
-#define PIN_SDRAM_ADDR1 (1 << 4*3)
-#define PIN_SDRAM_ADDR2 (1 << 3*3)
-#define PIN_SDRAM_ADDR3 (1 << 2*3)
-#define PIN_SDRAM_ADDR10 (1 << 6*3)
 
-// shift register 3 (SER3)
+#define PIN_SDRAM_ADDR3 (1 << 2*3)
+#define PIN_SDRAM_ADDR2 (1 << 3*3)
+#define PIN_SDRAM_ADDR1 (1 << 4*3)
+#define PIN_SDRAM_ADDR0 (1 << 5*3)
+#define PIN_SDRAM_ADDR10 (1 << 6*3)
+#define PIN_SDRAM_BA1 (1 << 7*3)
+
+// shift register 1 (SER1)
 
 #define PIN_SDRAM_ADDR4 (2 << 0*3)
-#define PIN_SDRAM_ADDR5 (2 << 7*3)
-#define PIN_SDRAM_ADDR6 (2 << 6*3)
-#define PIN_SDRAM_ADDR7 (2 << 5*3)
-#define PIN_SDRAM_ADDR8 (2 << 4*3)
-#define PIN_SDRAM_ADDR9 (2 << 3*3)
-// #define PIN_SDRAM_ADDR10 (2 << 2*3)
-#define PIN_SDRAM_ADDR11 (2 << 2*3)
 #define PIN_SDRAM_ADDR12 (2 << 1*3)
+#define PIN_SDRAM_ADDR11 (2 << 2*3)
+#define PIN_SDRAM_ADDR9 (2 << 3*3)
+#define PIN_SDRAM_ADDR8 (2 << 4*3)
+#define PIN_SDRAM_ADDR7 (2 << 5*3)
+#define PIN_SDRAM_ADDR6 (2 << 6*3)
+#define PIN_SDRAM_ADDR5 (2 << 7*3)
+// #define PIN_SDRAM_ADDR10 (2 << 2*3)
 
 
 
