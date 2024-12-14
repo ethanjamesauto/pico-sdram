@@ -17,6 +17,12 @@ void switch_bus_mode(bool is_out) {
     if (is_out != sdram_sm.bus_mode) {
         sdram_sm.bus_mode = is_out;
         pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
+        
+        // do the same thing but using the gpio functions
+        for (int i = 0; i < DATA_WIDTH; i++) {
+            gpio_set_dir(DATA_BASE + i, is_out);
+            gpio_set_pulls(DATA_BASE + i, !is_out, false);
+        }  
     }
 }
 
