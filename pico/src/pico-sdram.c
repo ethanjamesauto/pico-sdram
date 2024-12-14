@@ -13,11 +13,10 @@ int main()
     sdram_startup();
 
     while(1) {
-        for (int i = 0; i < 10; i++) {
-            sdram_write1(0x3fffff, 0, 0x13);
-            uint16_t data = sdram_read1(0x3fffff, 0); 
-        }
-        refresh_all();
+        // sdram_write1(i, 0, 0xaaaa);
+        sdram_read1(0, 0); 
+        //sleep_ms(500);
+        //refresh_all();
     }
 
     return 0;
