@@ -18,11 +18,8 @@ void switch_bus_mode(bool is_out) {
         sdram_sm.bus_mode = is_out;
         pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
         
-        // do the same thing but using the gpio functions
-        for (int i = 0; i < DATA_WIDTH; i++) {
-            gpio_set_dir(DATA_BASE + i, is_out);
-            gpio_set_pulls(DATA_BASE + i, !is_out, false);
-        }  
+        // set pullups
+        // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, !is_out, false);
     }
 }
 
@@ -191,7 +188,12 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     cmd[3] = process_cmd(CMD_INHIBIT);
 
     sdram_exec_read(cmd, dat, num_cmds, num_data);
-    return dat[3 + 3]; // with cas latency of 3, the data is 3 cycles after the read command
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
+    // printf("\n");
+
+    return dat[3 + 3 + 1]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
 void refresh_all() {
