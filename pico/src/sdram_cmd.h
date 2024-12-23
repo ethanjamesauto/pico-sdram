@@ -97,6 +97,12 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data);
  */
 uint16_t sdram_read1(uint32_t addr, uint8_t bank);
 
+// These are burst read functions - they are not completely implemented yet
+// as they do not update the mode register to configure the burst length
+void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
+
 /**
  * Change the direction of the data bus
  * is_out - true to set data bus to output mode, false to set to input mode

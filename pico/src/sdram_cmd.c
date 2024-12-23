@@ -196,6 +196,85 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     return dat[3 + 3 + 1]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
+void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 16;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
+    // printf("\n");
+
+    for (int i = 0; i < 8; i++) {
+        data[i] = dat[3 + 3 + 1 + i];
+    }
+}
+
+void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 12;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
+    // printf("\n");
+
+    for (int i = 0; i < 4; i++) {
+        data[i] = dat[3 + 3 + 1 + i];
+    }
+}
+
+void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 10;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
+    // printf("\n");
+
+    for (int i = 0; i < 2; i++) {
+        data[i] = dat[3 + 3 + 1 + i];
+    }
+}
+
+
 void refresh_all() {
     // First, turn off the two state machines
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
