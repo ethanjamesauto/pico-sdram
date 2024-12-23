@@ -44,9 +44,6 @@ function Value2Text(flag, value) {
   return "X";
 }
 Value2Text(0,0x82)
-<<<<<<< HEAD
-```
-=======
 
 function Value2Text(flag, value) {
   var lower = value & 0xf;
@@ -63,4 +60,3 @@ function Value2Text(flag, value) {
   return "X";
 }
 ```
->>>>>>> 2f3b819 (Update readme)
