@@ -23,6 +23,24 @@ void switch_bus_mode(bool is_out) {
     }
 }
 
+uint32_t get_addr_word(uint32_t a) {
+    uint32_t word = 0;
+    word |= (a & 1) ? PIN_SDRAM_ADDR0 : 0;
+    word |= ((a >> 1) & 1) ? PIN_SDRAM_ADDR1 : 0;
+    word |= ((a >> 2) & 1) ? PIN_SDRAM_ADDR2 : 0;
+    word |= ((a >> 3) & 1) ? PIN_SDRAM_ADDR3 : 0;
+    word |= ((a >> 4) & 1) ? PIN_SDRAM_ADDR4 : 0;
+    word |= ((a >> 5) & 1) ? PIN_SDRAM_ADDR5 : 0;
+    word |= ((a >> 6) & 1) ? PIN_SDRAM_ADDR6 : 0;
+    word |= ((a >> 7) & 1) ? PIN_SDRAM_ADDR7 : 0;
+    word |= ((a >> 8) & 1) ? PIN_SDRAM_ADDR8 : 0;
+    word |= ((a >> 9) & 1) ? PIN_SDRAM_ADDR9 : 0;
+    word |= ((a >> 10) & 1) ? PIN_SDRAM_ADDR10 : 0;
+    word |= ((a >> 11) & 1) ? PIN_SDRAM_ADDR11 : 0;
+    word |= ((a >> 12) & 1) ? PIN_SDRAM_ADDR12 : 0;
+    return word;
+}
+
 void sm_resync() {
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
 

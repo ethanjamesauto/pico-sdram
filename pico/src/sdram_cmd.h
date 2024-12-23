@@ -1,3 +1,6 @@
+#ifndef GRANDPARENT_H
+#define GRANDPARENT_H
+
 #include "pinout.h"
 
 #define CMD_INHIBIT (PIN_SDRAM_CS)
@@ -109,24 +112,11 @@ void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
  */
 void switch_bus_mode(bool is_out);
 
-// what a beauty
-inline uint32_t get_addr_word(uint32_t a) {
-    uint32_t word = 0;
-    word |= (a & 1) ? PIN_SDRAM_ADDR0 : 0;
-    word |= ((a >> 1) & 1) ? PIN_SDRAM_ADDR1 : 0;
-    word |= ((a >> 2) & 1) ? PIN_SDRAM_ADDR2 : 0;
-    word |= ((a >> 3) & 1) ? PIN_SDRAM_ADDR3 : 0;
-    word |= ((a >> 4) & 1) ? PIN_SDRAM_ADDR4 : 0;
-    word |= ((a >> 5) & 1) ? PIN_SDRAM_ADDR5 : 0;
-    word |= ((a >> 6) & 1) ? PIN_SDRAM_ADDR6 : 0;
-    word |= ((a >> 7) & 1) ? PIN_SDRAM_ADDR7 : 0;
-    word |= ((a >> 8) & 1) ? PIN_SDRAM_ADDR8 : 0;
-    word |= ((a >> 9) & 1) ? PIN_SDRAM_ADDR9 : 0;
-    word |= ((a >> 10) & 1) ? PIN_SDRAM_ADDR10 : 0;
-    word |= ((a >> 11) & 1) ? PIN_SDRAM_ADDR11 : 0;
-    word |= ((a >> 12) & 1) ? PIN_SDRAM_ADDR12 : 0;
-    return word;
-}
+/**
+ * Transform the memory address to a 32-bit word sent to 
+ * the shift registers with the correct pinout
+ */
+uint32_t get_addr_word(uint32_t a);
 
 inline uint32_t get_bank_word(uint32_t b) {
     uint32_t word = 0;
@@ -181,3 +171,4 @@ inline uint32_t cmd_write(uint16_t addr, uint8_t bank, bool precharge) {
     return process_cmd(WRITE | get_addr_word(addr) | get_bank_word(bank));
 }
 
+#endif
