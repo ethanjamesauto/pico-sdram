@@ -33,7 +33,9 @@ logic casb;
 logic web;
 logic [1:0] dqm;
 
-MT48LC8M16A2 sdram(
+IS42VM16400K
+// MT48LC8M16A2 
+sdram(
     .dq(dq),
     .addr(addr),
     .ba(ba),
