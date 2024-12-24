@@ -47,6 +47,17 @@ void memtest() {
     else printf("ERROR: Errors found!\n");
 }
 
+void memtest_full_page() {
+    sdram_startup();
+    for (int i = 0; i < 1024; i++) {
+        sdram_write1(i, 0, i);
+    }
+    refresh_all();
+
+    uint16_t data[2];
+    sdram_read_page(32, 0, data, 2);
+}
+
 int main()
 {
     stdio_init_all();
@@ -54,6 +65,7 @@ int main()
     sdram_startup();
 
     while(1) {
+        // memtest_full_page();
         memtest();
     }
 }

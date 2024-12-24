@@ -292,6 +292,33 @@ void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data) {
     }
 }
 
+// WIP - not finished yet
+void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint8_t size) {
+    const int num_cmds = 20;
+    const int num_data = 30;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    for (int i = 0; i < num_data; i++) dat[i] = 0;
+    
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
+    cmd[1] = process_cmd(CMD_INHIBIT);
+
+    // ADDR10 results in an auto-precharge
+    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
+    cmd[3] = process_cmd(CMD_INHIBIT);
+    // cmd[16] = process_cmd(BURST_TERMINATE);
+
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+
+    // print the entire data array in one line
+    for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
+    printf("\n");
+
+    for (int i = 0; i < size; i++) {
+        data[i] = dat[3 + 3 + 1 + i];
+    }
+}
 
 void refresh_all() {
     // First, turn off the two state machines
