@@ -92,6 +92,12 @@ void sdram_init() {
 
     sdram_sm.bus_mode = true; // default to output mode
     switch_bus_mode(false); // set data bus to input mode
+
+    // set the CS pin to high impedance to make sure it doesn't short the shift register
+    gpio_set_function(SDRAM_CS, GPIO_FUNC_NULL);
+    gpio_disable_pulls(SDRAM_CS);
+    gpio_set_input_enabled(SDRAM_CS, false); // make sure the input circuitry is disconnected - https://forums.raspberrypi.com/viewtopic.php?t=312533
+
 }
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
