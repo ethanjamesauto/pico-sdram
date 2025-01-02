@@ -13,8 +13,10 @@
 // the data should be different for each address
 // use a hash function to generate the data
 uint16_t get_data(uint32_t addr) {
-    // return ((addr >> 16)*5 + (addr >> 8)*3 + addr) & 0b0000001111111111;
-    return rand() & 0b0000001111111111;
+    srand(addr);
+    return rand();
+    // return ((addr >> 16)*5 + (addr >> 8)*3 + addr);
+    //return rand();
 }
 
 void memtest() {
@@ -44,6 +46,39 @@ void memtest() {
         }
     }
     if (!errors) printf("SUCCESS: Test completed with no errors!\n");
+    else printf("ERROR: Errors found!\n");
+}
+
+void memtest_burst_8() {
+    const int max = 1 << 15; // this tests the full 256Mbits of the SDRAM
+
+    srand(0);
+    for (int i = 0; i < max; i++) {
+        uint16_t write_dat = get_data(i);
+        sdram_write1(i, 0, write_dat);
+        if (i % 10000 == 0) refresh_all();
+        if (i % 100000 == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
+    }
+    
+
+    srand(0);
+    bool errors = false;
+
+    for (int i = 0; i < max; i += 8) {
+        uint16_t read_dat[8];
+        sdram_read8(i, 0, read_dat);
+
+        // if (i % 1000 == 0) refresh_all();
+        if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
+        for (int j = 0; j < 8; j++) {
+            if (read_dat[j] != get_data(i + j)) {
+                printf("Read %d: %d", i + j, read_dat[j]);
+                printf(" (err: %016b)\n", read_dat[j] ^ get_data(i + j));
+                errors = true;
+            }
+        }
+    }
+    if (!errors) printf("SUCCESS: Test completed!\n");
     else printf("ERROR: Errors found!\n");
 }
 
