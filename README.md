@@ -9,6 +9,9 @@ This project attempts to interface a Raspberry Pi Pico with a [32MB SDRAM IC](ht
   <img src="images/p3.png" width="200" />
 </p>
 
+## Known Issues
+* The data bus FIFO will occasionally overflow when performing burst reads when the CPU is servicing an interrupt
+
 ## Future Work
 Eventually, I'd like to use this SDRAM interface with a PIO-based QSPI interface. The QSPI interface may then appear as a QSPI PSRAM and can be connected to the rp2350's QSPI bus. The pico can then translate "psram" accesses to sdram accesses, which would **allow the pico to natively access sdram in the address space**. This might not be possible.
 
