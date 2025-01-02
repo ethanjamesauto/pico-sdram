@@ -7,6 +7,7 @@
 #include <stdlib.h>
 
 #include "sdram_cmd.h"
+#include "debug.h"
 
 // function used to fill all addresses with some data.
 // uses only the first 8 bits of data, but
@@ -98,6 +99,7 @@ int main()
     stdio_init_all();
     sdram_init();    
     sdram_startup();
+    debug_init();
 
     while(1) {
         // memtest_full_page();

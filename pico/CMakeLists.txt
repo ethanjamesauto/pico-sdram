@@ -26,7 +26,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(pico-sdram src/pico-sdram.c src/sdram_cmd.c)
+add_executable(pico-sdram src/pico-sdram.c src/sdram_cmd.c src/debug.c)
 
 pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/three_74hc595.pio)
 pico_generate_pio_header(pico-sdram ${CMAKE_CURRENT_LIST_DIR}/src/data_bus.pio)
