@@ -88,7 +88,7 @@ void test_pio() {
 
 
     uint32_t jmp_addr;
-    if (cnt % 4 == 0) {
+    if ((cnt+3) % 4 == 0) {
         jmp_addr = sdram_sm.offset + 7; // data
 
         for (int i = 0 + (cnt & 4); i < 3 + (cnt & 4); i++) {
@@ -105,19 +105,20 @@ void test_pio() {
     if (first) {
         first = false;
         switch_bus_mode(true); // set data bus to output mode
-        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
 
     if (cnt % 8 == 0) {
         while (!pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) || !pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm)) {
             tight_loop_contents();
         }
-        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+        sleep_us(500);
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
         pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
         // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
         //pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
     } else {
-        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
 
     cnt += 1;

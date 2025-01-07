@@ -11,7 +11,7 @@
 output_start:
 ; mov x, y
 set x, 5
-wait 1 irq 7 [1+12] ; 8 happens to be the correct delay here
+wait 1 irq 7 [1+12] ; 12 happens to be the correct delay here
 
 output_loop:
     out pins, 16
@@ -21,7 +21,7 @@ output_loop:
 
 input_start:
 mov x, y
-wait 1 irq 7
+wait 1 irq 7 [1+12+6] ; adding 6 for a CAS latency of 3 cycles
 
 input_loop:
     in pins, 16
@@ -62,6 +62,6 @@ static inline void data_bus_program_init(PIO pio, uint sm, uint offset, uint pin
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
     // Set the state machine running
-    // pio_sm_set_enabled(pio, sm, true);
+    pio_sm_set_enabled(pio, sm, true);
 }
 %}

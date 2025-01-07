@@ -103,7 +103,7 @@ int main()
 
     while(1) {
         // memtest_full_page();
-        for (int i = 0; i < 8; i++) test_pio();
+        test_pio();
         // memtest();
     }
 }
