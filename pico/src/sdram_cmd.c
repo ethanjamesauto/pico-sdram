@@ -42,18 +42,19 @@ uint32_t get_addr_word(uint32_t a) {
 }
 
 void sm_resync() {
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+    // pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
 
     // Reset both program counters to 0 by executing a 
     // JMP instruction to the starting offset of each program
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+    // pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
+    // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
 
     // empty rx fifo
     // TODO: better way to do this?
-    while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
-        pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
-    }
+    //while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+    //    pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
+    // }
+    // pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
 }
 
 void sm_resync_read() {
@@ -73,6 +74,57 @@ void sm_resync_read() {
 
 void sm_start() {
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+}
+
+void test_pio() {
+    static bool first = true;
+    static int cnt = 0;
+
+    uint32_t dat = 0b000100000100000100000100;
+    // uint32_t dat = 0b100000100000100000100000;
+    // uint32_t dat = 0b100010001100010001100010;
+    // uint32_t dat = 0b100100100100100100100100;
+    dat = ((dat & 0b111111111111111111111000) << 5) | (dat & 0b111);
+
+
+    uint32_t jmp_addr;
+    if (cnt % 4 == 0) {
+        jmp_addr = sdram_sm.offset + 7; // data
+
+        for (int i = 0 + (cnt & 4); i < 3 + (cnt & 4); i++) {
+            pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, 2*i | ((2*i + 1) << 16));
+        }
+    } else {
+        jmp_addr = sdram_sm.offset + 9;
+    } 
+
+    dat |= (jmp_addr << 3);
+    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, dat << 3);
+
+
+    if (first) {
+        first = false;
+        switch_bus_mode(true); // set data bus to output mode
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+    }
+
+    if (cnt % 8 == 0) {
+        while (!pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) || !pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm)) {
+            tight_loop_contents();
+        }
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
+        pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
+        // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
+        //pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+    } else {
+        pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
+    }
+
+    cnt += 1;
+}
+
+void resync_pio() {
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
 }
 
 void sdram_init() {

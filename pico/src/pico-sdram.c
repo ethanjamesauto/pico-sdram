@@ -98,11 +98,12 @@ int main()
 {
     stdio_init_all();
     sdram_init();    
-    sdram_startup();
+    // sdram_startup();
     debug_init();
 
     while(1) {
         // memtest_full_page();
-        memtest();
+        for (int i = 0; i < 8; i++) test_pio();
+        // memtest();
     }
 }

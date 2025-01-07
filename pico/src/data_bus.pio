@@ -6,23 +6,27 @@
 
 .program data_bus
 
-; output state machine code
-wait 0 gpio 22
-wait 1 gpio 22              [6] ; we output data on the falling edge of the clock
-
 .wrap_target
 
-out pins, 16                [15]
+output_start:
+; mov x, y
+set x, 5
+wait 1 irq 7 [1+12] ; 8 happens to be the correct delay here
 
+output_loop:
+    out pins, 16
+    jmp x-- output_loop
 .wrap
 
-; input state machine code
-wait 0 gpio 22                   ; Note: this is instruction 3
-wait 1 gpio 22              [14] ; 6 + 8 (8 is half of the 16-cycle clock period, because we sample on the rising edge)
+
+input_start:
+mov x, y
+wait 1 irq 7
 
 input_loop:
-    in pins, 16             [14]
-    jmp input_loop
+    in pins, 16
+    jmp x-- input_loop
+jmp input_start
 
 % c-sdk {
 

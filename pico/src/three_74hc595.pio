@@ -1,30 +1,42 @@
-
+; WIP! WIP! WIP!
 ; This program drives 3 74HC595 shift registers to control 24 outputs.
 .program three_74hc595
 
 ; sideset pins - rclk | srclk - (register clock | serial clock)
-.side_set 2
+.side_set 1
 
-wait 0 gpio 22          side 0b00
-wait 1 gpio 22          side 0b00 [6]   ; TODO: figure out correct delay
+; wait 1 gpio 22      side 1      ; TODO: see if it's 1 or 0
+wait 0 gpio 22      side 1      ; TODO: see if it's 1 or 0
 
 .wrap_target
 
-out pins, 3             side 0b10 ; shift out 3 bits of data to the 3 serial data lines
-set x, 6                side 0b01 ; number of bits to shift out minus 2
+start:
+out pins, 3         side 1
+set x, 4            side 1
 
 loop:
-    out pins, 3         side 0b00 ; shift out 3 bits of data to the 3 serial data lines
-    jmp x-- loop        side 0b01 ; loop until we're done shifting
+    out pins, 3     side 1
+    jmp x-- loop    side 1
 
-.wrap                             ; wrap around to the beginning of the program (.wrap_target)
+out pins, 3         side 1
+out pc, 5           side 1
+; nop side 1
+
+read_write:
+out pins, 3         side 0
+irq set 7           side 0
+.wrap
+
+no_read_write:
+out pins, 3         side 0
+jmp start           side 0
 
 % c-sdk {
-
+ 
 #include "src/config.h"
 
 #define NUM_PINS 3
-#define NUM_SIDESET 2
+#define NUM_SIDESET 1
 
 static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uint pin, uint sidepin) {
     pio_sm_config c = three_74hc595_program_get_default_config(offset);
@@ -33,7 +45,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
-    sm_config_set_out_shift(&c, false, true, 24); // shift_right=true, autopull=true, pull_threshold=24
+    sm_config_set_out_shift(&c, false, true, 24 + 5); // shift_right=true, autopull=true, pull_threshold=24
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
     sm_config_set_clkdiv(&c, CLKDIV);
 
