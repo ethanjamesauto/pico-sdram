@@ -85,22 +85,20 @@ void test_pio() {
         // uint32_t dat = 0b100000100000100000100000;
         // uint32_t dat = 0b100010001100010001100010;
         // uint32_t dat = 0b100100100100100100100100;
-        dat = ((dat & 0b111111111111111111111000) << 5) | (dat & 0b111);
 
+        uint32_t send;
 
-        uint32_t jmp_addr;
-        if (i % 4 == 0) {
-            jmp_addr = sdram_sm.offset + 7; // data
+        if (i == 0 || i == 2) {
+            send = process_cmd_v2(dat, true);
 
-            for (int j = 0; j < 2; j++) {
+            for (int j = 0; j < 1; j++) {
                 int num = j + (i > 0 ? 2 : 0);
                 pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, 2*num | ((2*num + 1) << 16));
             }
         } else {
-            jmp_addr = sdram_sm.offset + 9;
+            send = process_cmd_v2(dat, false);
         }
-        dat |= (jmp_addr << 3);
-        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, dat << 3);
+        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, send);
     }
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
@@ -428,4 +426,18 @@ void sdram_startup() {
 
     // wait for the refresh to finish
     sdram_wait();
+}
+
+inline uint32_t process_cmd_v2(uint32_t cmd, bool is_rw) {
+    // cmd |= PIN_SDRAM_CKE;
+    cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
+    
+    uint32_t jmp_addr = sdram_sm.offset + 9;
+
+    if (is_rw) {
+        jmp_addr = sdram_sm.offset + 7;
+    }
+
+    cmd |= (jmp_addr << 3);
+    return cmd << 3;
 }

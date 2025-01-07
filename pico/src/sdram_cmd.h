@@ -138,6 +138,8 @@ inline uint32_t process_cmd(uint32_t cmd) {
     return cmd << 8;
 }
 
+uint32_t process_cmd_v2(uint32_t cmd, bool is_rw);
+
 /**
  * Get a 32-bit word with the mode register settings
  * Returns a word that can be ORed with LOAD_MODE to load the mode register

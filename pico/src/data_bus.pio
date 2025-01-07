@@ -10,7 +10,7 @@
 
 output_start:
 ; mov x, y
-set x, 3
+set x, 1
 wait 1 irq 7 [1+12] ; 12 happens to be the correct delay here
 
 output_loop:
