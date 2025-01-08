@@ -21,6 +21,9 @@ void switch_bus_mode(bool is_out) {
         pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2 + (is_out ? 0 : 4));        
         // set pullups
         // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, !is_out, false);
+
+        // set pulldowns
+        // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, false, !is_out);
     }
 }
 
@@ -44,8 +47,15 @@ uint32_t get_addr_word(uint32_t a) {
 
 void test_pio() {
     sdram_startup();
-    sdram_write1(0, 0, 0xabcd);
-    sdram_read1(0, 0);
+
+    for (int i = 0; i < 8; i++) {
+        sdram_write1(i, 0, i + 2);
+    }
+   //uint16_t dat[4];
+    //sdram_read4(0, 0, dat);
+    //printf("%d %d %d %d\n", dat[0], dat[1], dat[2], dat[3]);
+    for (int i = 0; i < 1000; i++) sdram_read1(0, 0);
+    // printf("%d\n", dat);
 }
 
 void resync_pio() {
@@ -71,9 +81,9 @@ void sdram_init() {
     switch_bus_mode(false); // set data bus to input mode
 
     // set the CS pin to high impedance to make sure it doesn't short the shift register
-    gpio_set_function(SDRAM_CS, GPIO_FUNC_NULL);
-    gpio_disable_pulls(SDRAM_CS);
-    gpio_set_input_enabled(SDRAM_CS, false); // make sure the input circuitry is disconnected - https://forums.raspberrypi.com/viewtopic.php?t=312533
+    // gpio_set_function(SDRAM_CS, GPIO_FUNC_NULL);
+    // gpio_disable_pulls(SDRAM_CS);
+    // gpio_set_input_enabled(SDRAM_CS, false); // make sure the input circuitry is disconnected - https://forums.raspberrypi.com/viewtopic.php?t=312533
 
 }
 
@@ -137,6 +147,7 @@ void sdram_wait() {
     // this is needed to allow the final commands to be executed after the tx fifos are empty
     // TODO: find a more elegant solution
     sleep_us(5);
+    // for (int i = 0; i < 15; i++) tight_loop_contents();
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
     pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
@@ -167,9 +178,6 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
 
-    dat[0] = 0;
-    dat[1] = 0;
-
     cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
@@ -183,7 +191,28 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
     // printf("\n");
 
+
     return dat[0]; // with cas latency of 3, the data is 3 cycles after the read command
+}
+
+void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 4;
+    uint32_t cmd[num_cmds];
+    uint16_t dat[num_data];
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd_v2(NOP, false);    
+    
+    sdram_exec_read(cmd, dat, num_cmds, num_data);
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
+    // printf("\n");
 }
 
 void refresh_all() {
@@ -227,7 +256,7 @@ void sdram_startup() {
     cmd[1] = process_cmd_v2(AUTO_REFRESH, false);
     cmd[2] = process_cmd_v2(AUTO_REFRESH, false);
 
-    uint32_t mode = get_mode_word(MODE_BURST_LEN_1, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
+    uint32_t mode = get_mode_word(MODE_BURST_LEN_8, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
     cmd[3] = process_cmd_v2(mode | LOAD_MODE, false);
     cmd[4] = process_cmd_v2(NOP, false);
     cmd[5] = process_cmd_v2(AUTO_REFRESH, false);
