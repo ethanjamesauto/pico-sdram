@@ -50,13 +50,13 @@ void memtest() {
     else printf("ERROR: Errors found!\n");
 }
 
-void memtest_burst_8() {
+void memtest_burst_8(uint8_t bank) {
     const int max = 1 << 22; // just test bank 0
 
     srand(0);
     for (int i = 0; i < max; i++) {
         uint16_t write_dat = get_data(i);
-        sdram_write1(i, 0, write_dat);
+        sdram_write1(i, bank, write_dat);
         if (i % 100000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
     }
@@ -67,7 +67,7 @@ void memtest_burst_8() {
 
     for (int i = 0; i < max; i += 8) {
         uint16_t read_dat[8];
-        sdram_read8(i, 0, read_dat);
+        sdram_read8(i, bank, read_dat);
 
         if (i % 100000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
@@ -104,7 +104,7 @@ int main()
     while(1) {
         // memtest_full_page();
         // test_pio();
-        memtest_burst_8();
+        for (int i = 0; i < 4; i++) memtest_burst_8(i);
         // memtest();
     }
 }
