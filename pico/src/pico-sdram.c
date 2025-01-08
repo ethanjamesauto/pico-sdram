@@ -52,6 +52,9 @@ void memtest() {
 }
 
 void memtest_burst_8(uint8_t bank) {
+    static int succ = 0;
+    static int fail = 0;
+
     const int max = 1 << 22; // just test bank 0
 
     srand(0);
@@ -80,8 +83,12 @@ void memtest_burst_8(uint8_t bank) {
             }
         }
     }
-    if (!errors) printf("SUCCESS: Test completed!\n");
-    else printf("ERROR: Errors found!\n");
+    if (!errors) {
+        printf("SUCCESS: Test completed! Successes - %d, Failures - %d\n", ++succ, fail);
+    }
+    else {
+        printf("ERROR: Errors found! Successes - %d, Failures - %d\n", succ, ++fail);
+    }
 }
 
 void memtest_full_page() {
