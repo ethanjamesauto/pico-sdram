@@ -20,7 +20,8 @@ output_loop:
 
 
 input_start:
-mov x, y
+; mov x, y
+set x, 1
 wait 1 irq 7 [1+12+6] ; adding 6 for a CAS latency of 3 cycles
 
 input_loop:

@@ -18,6 +18,7 @@ void switch_bus_mode(bool is_out) {
         sdram_sm.bus_mode = is_out;
         pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
         
+        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2 + (is_out ? 0 : 4));        
         // set pullups
         // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, !is_out, false);
     }
@@ -41,77 +42,9 @@ uint32_t get_addr_word(uint32_t a) {
     return word;
 }
 
-void sm_resync() {
-    // pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
-
-    // Reset both program counters to 0 by executing a 
-    // JMP instruction to the starting offset of each program
-    // pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
-
-    // empty rx fifo
-    // TODO: better way to do this?
-    //while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
-    //    pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
-    // }
-    // pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
-}
-
-void sm_resync_read() {
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
-
-    // Reset both program counters to 0 by executing a 
-    // JMP instruction to the starting offset of each program
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2 + 3); // the read sm is at offset 3
-
-    // empty rx fifo
-    // TODO: better way to do this?
-    while (pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
-        pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
-    }
-}
-
-void sm_start() {
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
-}
-
 void test_pio() {
-
-    switch_bus_mode(true); // set data bus to output mode
-
-    for (int i = 0; i < 8; i++) {
-        uint32_t dat = 0b000100000100000100000100;
-        // uint32_t dat = 0b100000100000100000100000;
-        // uint32_t dat = 0b100010001100010001100010;
-        // uint32_t dat = 0b100100100100100100100100;
-
-        uint32_t send;
-
-        if (i == 0 || i == 2) {
-            send = process_cmd_v2(dat, true);
-
-            for (int j = 0; j < 1; j++) {
-                int num = j + (i > 0 ? 2 : 0);
-                pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, 2*num | ((2*num + 1) << 16));
-            }
-        } else {
-            send = process_cmd_v2(dat, false);
-        }
-        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, send);
-    }
-
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
-
-    while (!pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) || !pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm)) {
-        tight_loop_contents();
-    }
-
-    // Note: this sleep is still necessary as the SMs could still be running even when the tx fifo is empty
-    sleep_us(5);
-
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
+    sdram_write1(0, 0, 4);
+    sdram_read1(0, 0);
 }
 
 void resync_pio() {
@@ -147,19 +80,16 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
     switch_bus_mode(true); // set data bus to output mode
 
-    // sync the state machines
-    sm_resync();
-
-    for (int i = 0; i < data_len; i += 2) {
+    for (int i = 0; i < cmd_len; i += 2) {
         if (i + 1 < cmd_len) {
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
         }
-        pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
+        if (i + 1 < data_len) pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
 
         // Let the fifos fill up a bit before starting the pios
         // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-        if (i == 2) sm_start();
+        if (i == 2) pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
 
     // wait for the last data to be sent
@@ -172,28 +102,16 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 
     switch_bus_mode(false); // set data bus to input mode
 
-    // sync the state machines and clear the rx fifo
-    sm_resync_read();
-
     int read_ptr = 0;
 
-    for (int i = 0; i < data_len; i += 2) {
+    for (int i = 0; i < cmd_len; i += 2) {
         if (i + 1 < cmd_len) {
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
         }
         // pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
 
-        // Let the fifos fill up a bit before starting the pios
-        // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-        if (i == 2) sm_start();
-
-        // if there's anything in the rx fifo, read it
-        while (read_ptr < data_len && pio_sm_is_rx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
-            uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
-            data[read_ptr++] = d & 0xffff;
-            data[read_ptr++] = d >> 16;
-        }
+        if (i == 2) pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
 
     // keep reading until we've read all the data
@@ -212,161 +130,59 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
  * Wait for all operations to finish
  */
 void sdram_wait() {
-    while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false || pio_sm_is_tx_fifo_empty(sdram_sm.pio2, sdram_sm.sm2) == false) {
+    while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false) {
         tight_loop_contents();
     }
     // this is needed to allow the final commands to be executed after the tx fifos are empty
     // TODO: find a more elegant solution
-    sleep_us(1);
+    sleep_us(5);
+
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
+    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     const int num_cmds = 4;
-    const int num_data = 5;
+    const int num_data = 2;
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
 
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    dat[3] = data;
+    dat[0] = data;
+    dat[1] = 0;
 
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
+    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd_v2(NOP, false);
 
     sdram_exec(cmd, dat, num_cmds, num_data);
 }
 
 uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     const int num_cmds = 4;
-    const int num_data = 8;
+    const int num_data = 2;
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
 
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
+    dat[0] = 0;
+    dat[1] = 0;
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
-
+    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd_v2(NOP, false);    
+    
     sdram_exec_read(cmd, dat, num_cmds, num_data);
 
     // print the entire data array in one line
     // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
     // printf("\n");
 
-    return dat[3 + 3 + 1]; // with cas latency of 3, the data is 3 cycles after the read command
-}
-
-void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 4;
-    const int num_data = 16;
-    uint32_t cmd[num_cmds];
-    uint16_t dat[num_data];
-
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
-
-    // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
-
-    sdram_exec_read(cmd, dat, num_cmds, num_data);
-
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
-    // printf("\n");
-
-    for (int i = 0; i < 8; i++) {
-        data[i] = dat[3 + 3 + 1 + i];
-    }
-}
-
-void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 4;
-    const int num_data = 12;
-    uint32_t cmd[num_cmds];
-    uint16_t dat[num_data];
-
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
-
-    // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
-
-    sdram_exec_read(cmd, dat, num_cmds, num_data);
-
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
-    // printf("\n");
-
-    for (int i = 0; i < 4; i++) {
-        data[i] = dat[3 + 3 + 1 + i];
-    }
-}
-
-void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 4;
-    const int num_data = 10;
-    uint32_t cmd[num_cmds];
-    uint16_t dat[num_data];
-
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
-
-    // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
-
-    sdram_exec_read(cmd, dat, num_cmds, num_data);
-
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
-    // printf("\n");
-
-    for (int i = 0; i < 2; i++) {
-        data[i] = dat[3 + 3 + 1 + i];
-    }
-}
-
-// WIP - not finished yet
-void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint8_t size) {
-    const int num_cmds = 20;
-    const int num_data = 30;
-    uint32_t cmd[num_cmds];
-    uint16_t dat[num_data];
-
-    for (int i = 0; i < num_data; i++) dat[i] = 0;
-    
-    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9));
-    cmd[1] = process_cmd(CMD_INHIBIT);
-
-    // ADDR10 results in an auto-precharge
-    cmd[2] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10); 
-    cmd[3] = process_cmd(CMD_INHIBIT);
-    // cmd[16] = process_cmd(BURST_TERMINATE);
-
-    sdram_exec_read(cmd, dat, num_cmds, num_data);
-
-    // print the entire data array in one line
-    for (int i = 0; i < num_data; i++) printf("%04d ", dat[i]);
-    printf("\n");
-
-    for (int i = 0; i < size; i++) {
-        data[i] = dat[3 + 3 + 1 + i];
-    }
+    return dat[0]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
 void refresh_all() {

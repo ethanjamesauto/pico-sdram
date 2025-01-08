@@ -1,1 +1,1 @@
-#define CLKDIV 8
+#define CLKDIV 16
