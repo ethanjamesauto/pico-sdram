@@ -51,10 +51,16 @@ void test_pio() {
     for (int i = 0; i < 8; i++) {
         sdram_write1(i, 0, i + 2);
     }
-   //uint16_t dat[4];
-    //sdram_read4(0, 0, dat);
-    //printf("%d %d %d %d\n", dat[0], dat[1], dat[2], dat[3]);
-    for (int i = 0; i < 1000; i++) sdram_read1(0, 0);
+    // uint16_t dat[4];
+    // sdram_read4(0, 0, dat);
+    // printf("%d %d %d %d\n", dat[0], dat[1], dat[2], dat[3]);
+    uint16_t dat[8];
+    sdram_read8(0, 0, dat);
+    for (int i = 0; i < 8; i++) {
+        printf("%d ", dat[i]);
+    }
+    printf("\n");
+    // for (int i = 0; i < 1000; i++) sdram_read1(0, 0);
     // printf("%d\n", dat);
 }
 
@@ -146,7 +152,7 @@ void sdram_wait() {
     }
     // this is needed to allow the final commands to be executed after the tx fifos are empty
     // TODO: find a more elegant solution
-    sleep_us(5);
+    sleep_us(1);
     // for (int i = 0; i < 15; i++) tight_loop_contents();
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
@@ -195,11 +201,10 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     return dat[0]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
-void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
+void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
     const int num_cmds = 4;
-    const int num_data = 4;
+    const int num_data = 8;
     uint32_t cmd[num_cmds];
-    uint16_t dat[num_data];
 
     cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
@@ -208,7 +213,7 @@ void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
     cmd[2] = process_cmd_v2(NOP, false);
     cmd[3] = process_cmd_v2(NOP, false);    
     
-    sdram_exec_read(cmd, dat, num_cmds, num_data);
+    sdram_exec_read(cmd, data, num_cmds, num_data);
 
     // print the entire data array in one line
     // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
@@ -216,36 +221,9 @@ void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data) {
 }
 
 void refresh_all() {
-    // First, turn off the two state machines
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, false);
-
-    // Reset both program counters to 0 by executing a 
-    // JMP instruction to the starting offset of each program
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-    // pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2);
-
-    uint32_t cmd[5];
-    cmd[0] = process_cmd(ACTIVATE);
-    cmd[1] = process_cmd(CMD_INHIBIT);
-    cmd[2] = process_cmd(PRECHARGE_ALL);
-    cmd[3] = process_cmd(CMD_INHIBIT);
-    cmd[4] = process_cmd(AUTO_REFRESH);
-
-    for (int i = 0; i < 4; i++) {
-        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-        if (i == 3) {
-            pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2, true);
-        }
-    }
-    
-    for (int i = 0; i < 8192; i++) {
-        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[4]);
-    }
-
-    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[1]);
-
-    // wait for the refresh to finish
-    sdram_wait();
+    uint32_t cmd[8];
+    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(AUTO_REFRESH, false);
+    for (int i = 0; i < 8192/8 + 1; i++) sdram_exec(cmd, 0, 8, 0);
 }
 
 void sdram_startup() {
