@@ -1,6 +1,6 @@
 // #define CONFIG_DEBUG
-#define CONFIG_REV1
-// #define CONFIG_REV2
+// #define CONFIG_REV1
+#define CONFIG_REV2
 
 // On rev 2.0, the CS pin is also connected to this gpio.
 // Right now, I'm using the CS pin on the shift register, so this pin should be set to high impedance.
