@@ -9,8 +9,7 @@
 .wrap_target
 
 output_start:
-; mov x, y
-set x, 1
+mov x, y
 wait 1 irq 7 [1+12] ; 12 happens to be the correct delay here
 
 output_loop:
@@ -20,8 +19,7 @@ output_loop:
 
 
 input_start:
-; mov x, y
-set x, 7
+mov x, y
 
 ; adding 6 for a CAS latency of 3 cycles, then +1 because we sample at the rising edge
 ; adding +3 allows us to reach a PIO clkdiv of 1. I have no idea how or why this works.

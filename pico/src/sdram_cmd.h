@@ -53,6 +53,9 @@ typedef struct {
 
     // true - output, false - input
     bool bus_mode;
+
+    // number of PIO transactions per read/write command
+    uint data_size;
 } sdram_sm_t;
 
 /**
@@ -118,7 +121,7 @@ void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint8_t size);
  * Change the direction of the data bus
  * is_out - true to set data bus to output mode, false to set to input mode
  */
-void switch_bus_mode(bool is_out);
+void switch_bus_mode(bool is_out, uint32_t size);
 
 /**
  * Transform the memory address to a 32-bit word sent to 

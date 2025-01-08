@@ -13,7 +13,7 @@
 sdram_sm_t sdram_sm;
 
 // switch bus mode between input and output
-void switch_bus_mode(bool is_out) {
+void switch_bus_mode(bool is_out, uint32_t size) {
     if (is_out != sdram_sm.bus_mode) {
         sdram_sm.bus_mode = is_out;
         pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
@@ -24,6 +24,13 @@ void switch_bus_mode(bool is_out) {
 
         // set pulldowns
         // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, false, !is_out);
+    }
+
+    if (size != sdram_sm.data_size) {
+        pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, size - 1);
+        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, 0x6040);
+        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, 0xa022);
+        sdram_sm.data_size = size;
     }
 }
 
@@ -83,8 +90,9 @@ void sdram_init() {
     clkgen_program_init(sdram_sm.pio3, sdram_sm.sm3, sdram_sm.offset3, SDRAM_CLK);
     pio_clkdiv_restart_sm_mask(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2 | 1u << sdram_sm.sm3);
 
-    sdram_sm.bus_mode = true; // default to output mode
-    switch_bus_mode(false); // set data bus to input mode
+    sdram_sm.bus_mode = true;
+    sdram_sm.data_size = 0;
+    switch_bus_mode(false, 8); // set data bus to input mode wih burst size of 8
 
     // set the CS pin to high impedance to make sure it doesn't short the shift register
     // gpio_set_function(SDRAM_CS, GPIO_FUNC_NULL);
@@ -95,7 +103,7 @@ void sdram_init() {
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
 
-    switch_bus_mode(true); // set data bus to output mode
+    switch_bus_mode(true, data_len); // set data bus to output mode
 
     for (int i = 0; i < cmd_len; i += 2) {
         if (i + 1 < cmd_len) {
@@ -117,7 +125,7 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 // same for sdram_exec
 void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
 
-    switch_bus_mode(false); // set data bus to input mode
+    switch_bus_mode(false, data_len); // set data bus to input mode
 
     int read_ptr = 0;
 
