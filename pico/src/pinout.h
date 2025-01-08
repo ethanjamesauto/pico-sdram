@@ -1,6 +1,6 @@
 // #define CONFIG_DEBUG
-// #define CONFIG_REV1
-#define CONFIG_REV2
+#define CONFIG_REV1
+// #define CONFIG_REV2
 
 // On rev 2.0, the CS pin is also connected to this gpio.
 // Right now, I'm using the CS pin on the shift register, so this pin should be set to high impedance.
@@ -101,7 +101,7 @@
 
 #define CMD_SM_TOTAL_PINS 5
 #define CMD_SM_SHIFT_OUT_BASE 19
-#define CMD_SM_SIDESET_BASE 17
+#define CMD_SM_SIDESET_BASE 18
 
 // This value is also hardcoded in the PIO state machines
 // TODO: make this not the case
@@ -157,7 +157,7 @@
 
 #define CMD_SM_TOTAL_PINS 5
 #define CMD_SM_SHIFT_OUT_BASE 19
-#define CMD_SM_SIDESET_BASE 17
+#define CMD_SM_SIDESET_BASE 18
 
 // This value is also hardcoded in the PIO state machines
 // TODO: make this not the case

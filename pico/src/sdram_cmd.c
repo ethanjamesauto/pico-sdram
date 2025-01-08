@@ -43,7 +43,8 @@ uint32_t get_addr_word(uint32_t a) {
 }
 
 void test_pio() {
-    sdram_write1(0, 0, 4);
+    sdram_startup();
+    sdram_write1(0, 0, 0xabcd);
     sdram_read1(0, 0);
 }
 
@@ -219,33 +220,31 @@ void refresh_all() {
 }
 
 void sdram_startup() {
-    sm_resync();
-    pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, process_cmd(CMD_INHIBIT | PIN_SDRAM_DQMH | PIN_SDRAM_DQML));
-    sm_start();
-    sleep_us(100);
+    // switch_bus_mode(true); // set data bus to output mode
 
-    uint32_t cmd[6];
-    cmd[0] = process_cmd(PRECHARGE_ALL);
-    cmd[1] = process_cmd(AUTO_REFRESH);
-    cmd[2] = process_cmd(AUTO_REFRESH);
+    uint32_t cmd[7];
+    cmd[0] = process_cmd_v2(PRECHARGE_ALL, false);
+    cmd[1] = process_cmd_v2(AUTO_REFRESH, false);
+    cmd[2] = process_cmd_v2(AUTO_REFRESH, false);
 
     uint32_t mode = get_mode_word(MODE_BURST_LEN_1, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
-    cmd[3] = process_cmd(mode | LOAD_MODE);
-    cmd[4] = process_cmd(CMD_INHIBIT);
-    cmd[5] = process_cmd(AUTO_REFRESH);
+    cmd[3] = process_cmd_v2(mode | LOAD_MODE, false);
+    cmd[4] = process_cmd_v2(NOP, false);
+    cmd[5] = process_cmd_v2(AUTO_REFRESH, false);
+    cmd[6] = process_cmd_v2(NOP, false);
 
-    sm_resync();
-    for (int i = 0; i < 6; i++) {
+    for (int i = 0; i < 7; i++) {
         pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-        if (i == 2) sm_start();
     }
+
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
 
     // wait for the refresh to finish
     sdram_wait();
 }
 
 inline uint32_t process_cmd_v2(uint32_t cmd, bool is_rw) {
-    // cmd |= PIN_SDRAM_CKE;
+    cmd |= PIN_SDRAM_CKE;
     cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
     
     uint32_t jmp_addr = sdram_sm.offset + 9;
