@@ -3,6 +3,7 @@
 #include "hardware/dma.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
+#include "hardware/clocks.h"
 
 #include <stdlib.h>
 
@@ -57,7 +58,7 @@ void memtest_burst_8(uint8_t bank) {
     for (int i = 0; i < max; i++) {
         uint16_t write_dat = get_data(i);
         sdram_write1(i, bank, write_dat);
-        if (i % 100000 == 0) refresh_all();
+        if (i % 10000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
     }
     
@@ -69,7 +70,7 @@ void memtest_burst_8(uint8_t bank) {
         uint16_t read_dat[8];
         sdram_read8(i, bank, read_dat);
 
-        if (i % 100000 == 0) refresh_all();
+        if (i % 10000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
         for (int j = 0; j < 8; j++) {
             if (read_dat[j] != get_data(i + j)) {
@@ -96,6 +97,7 @@ void memtest_full_page() {
 
 int main()
 {
+    set_sys_clock_khz(133000, false);
     stdio_init_all();
     sdram_init();    
     sdram_startup();

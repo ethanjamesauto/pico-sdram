@@ -1,1 +1,1 @@
-#define CLKDIV 3
+#define CLKDIV 1
