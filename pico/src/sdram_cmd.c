@@ -268,9 +268,9 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
     // printf("\n");
 }
 
-void sdram_read16(uint32_t addr, uint8_t bank, uint16_t* data) {
+void sdram_read32(uint32_t addr, uint8_t bank, uint16_t* data) {
     const int num_cmds = 8;
-    const int num_data = 16;
+    const int num_data = 32;
     uint32_t cmd[num_cmds];
 
     for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(NOP, false);
@@ -279,8 +279,8 @@ void sdram_read16(uint32_t addr, uint8_t bank, uint16_t* data) {
 
     // ADDR10 results in an auto-precharge
     cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
-    cmd[3] = process_cmd_v2(BURST_TERMINATE, false); 
-    cmd[4] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    cmd[5] = process_cmd_v2(BURST_TERMINATE, false); 
+    cmd[6] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
 

@@ -70,13 +70,13 @@ void memtest_burst_8(uint8_t bank) {
 
     bool errors = false;
 
-    for (int i = 0; i < max; i += 16) {
-        uint16_t read_dat[16];
-        sdram_read16(i, bank, read_dat);
+    for (int i = 0; i < max; i += 32) {
+        uint16_t read_dat[32];
+        sdram_read32(i, bank, read_dat);
 
         if (i % 10000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
-        for (int j = 0; j < 16; j++) {
+        for (int j = 0; j < 32; j++) {
             if (read_dat[j] != get_data(i + j)) {
                 printf("Read %d: %d", i + j, read_dat[j]);
                 printf(" (err: %016b)\n", read_dat[j] ^ get_data(i + j));

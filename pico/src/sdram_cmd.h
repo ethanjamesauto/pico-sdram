@@ -115,7 +115,7 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
 
-void sdram_read16(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read32(uint32_t addr, uint8_t bank, uint16_t* data);
 
 void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
 
@@ -168,7 +168,7 @@ inline uint32_t get_mode_word(uint8_t burst_len, uint8_t addr_mode, uint8_t cas_
 
 // Read: read a burst of data from the currently active row
 // Read with auto precharge: as above, and precharge (close row) when done
-// addr - column address
+// addr - column address 
 // bank - bank address
 inline uint32_t cmd_read(uint16_t addr, uint8_t bank, bool precharge) {
     if (precharge) {
