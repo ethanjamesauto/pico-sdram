@@ -108,11 +108,9 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
         }
         if (i + 1 < data_len) pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
-
-        // Let the fifos fill up a bit before starting the pios
-        // TODO: why can this go all the way up to 7 without failing? The fifos should be completely full and the program should be stuck
-        if (i == 2) pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
+
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
 
     // wait for the last data to be sent
     sdram_wait();
@@ -132,9 +130,9 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
         }
         // pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
-
-        if (i == 2) pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
     }
+
+    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
 
     // keep reading until we've read all the data
     while (read_ptr < data_len) {
@@ -254,7 +252,7 @@ void sdram_startup() {
     cmd[1] = process_cmd_v2(AUTO_REFRESH, false);
     cmd[2] = process_cmd_v2(AUTO_REFRESH, false);
 
-    uint32_t mode = get_mode_word(MODE_BURST_LEN_8, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_SINGLE);
+    uint32_t mode = get_mode_word(MODE_BURST_LEN_8, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_BURST);
     cmd[3] = process_cmd_v2(mode | LOAD_MODE, false);
     cmd[4] = process_cmd_v2(NOP, false);
     cmd[5] = process_cmd_v2(AUTO_REFRESH, false);

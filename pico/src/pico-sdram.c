@@ -24,7 +24,6 @@ uint16_t get_data(uint32_t addr) {
 void memtest() {
     const int max = 1 << 24; // this tests the full 256Mbits of the SDRAM
 
-    srand(0);
     for (int i = 0; i < max; i++) {
         uint16_t write_dat = get_data(i);
         sdram_write1(i >> 2, i & 0b11, write_dat);
@@ -33,7 +32,6 @@ void memtest() {
     }
     
 
-    srand(0);
     bool errors = false;
 
     for (int i = 0; i < max; i++) {
@@ -57,16 +55,19 @@ void memtest_burst_8(uint8_t bank) {
 
     const int max = 1 << 22; // just test bank 0
 
-    srand(0);
-    for (int i = 0; i < max; i++) {
-        uint16_t write_dat = get_data(i);
-        sdram_write1(i, bank, write_dat);
+    for (int i = 0; i < max; i += 8) {
+        uint16_t write_dat[8];
+
+        for (int j = 0; j < 8; j++) {
+            write_dat[j] = get_data(i + j);
+        }
+
+        sdram_write8(i, bank, write_dat);
         if (i % 10000 == 0) refresh_all();
         if (i % 100000 == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
     }
     
 
-    srand(0);
     bool errors = false;
 
     for (int i = 0; i < max; i += 8) {
