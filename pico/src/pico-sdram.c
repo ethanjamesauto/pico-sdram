@@ -63,20 +63,21 @@ void memtest_burst_8(uint8_t bank) {
         }
 
         sdram_write8(i, bank, write_dat);
-        if (i % 10000 == 0) refresh_all();
-        if (i % 100000 == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
+        if (i % (1 << 13) == 0) refresh_all();
+        if (i % (1 << 16) == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
     }
     
 
     bool errors = false;
 
-    for (int i = 0; i < max; i += 32) {
-        uint16_t read_dat[32];
-        sdram_read32(i, bank, read_dat);
+    const uint16_t num_read = 512;
+    for (int i = 0; i < max; i += num_read) {
+        uint16_t read_dat[num_read];
+        sdram_read_page(i, bank, read_dat, num_read);
 
-        if (i % 10000 == 0) refresh_all();
-        if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
-        for (int j = 0; j < 32; j++) {
+        if (i % (1 << 15) == 0) refresh_all();
+        if (i % (1 << 18) == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
+        for (int j = 0; j < num_read; j++) {
             if (read_dat[j] != get_data(i + j)) {
                 printf("Read %d: %d", i + j, read_dat[j]);
                 printf(" (err: %016b)\n", read_dat[j] ^ get_data(i + j));

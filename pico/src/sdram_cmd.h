@@ -113,17 +113,9 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
 
-void sdram_read32(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data);
 
 void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
-
-/**
- * Perform a full page read.
- * Note that this function will simply read the given number of words at the given
- * address - it does NOT pay attention to page boundaries.
- * size - number of words to read from RAM.
- */
-void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint8_t size);
 
 /**
  * Change the direction of the data bus
