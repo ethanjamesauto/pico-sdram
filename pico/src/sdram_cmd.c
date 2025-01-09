@@ -71,10 +71,6 @@ void test_pio() {
     // printf("%d\n", dat);
 }
 
-void resync_pio() {
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset);
-}
-
 void sdram_init() {
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.pio, &sdram_sm.sm, &sdram_sm.offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
     hard_assert(success);

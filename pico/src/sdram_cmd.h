@@ -185,6 +185,5 @@ inline uint32_t cmd_write(uint16_t addr, uint8_t bank, bool precharge) {
 }
 
 void test_pio();
-void sm_resync();
 
 #endif
