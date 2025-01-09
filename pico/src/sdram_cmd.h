@@ -56,6 +56,12 @@ typedef struct {
 
     // number of PIO transactions per read/write command
     uint data_size;
+
+    int cmd_chan;
+    int read_chan;
+    int write_chan;
+
+    uint32_t read_buf[8];
 } sdram_sm_t;
 
 /**
@@ -108,6 +114,8 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank);
 void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
+
+void sdram_read16(uint32_t addr, uint8_t bank, uint16_t* data);
 
 void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
 

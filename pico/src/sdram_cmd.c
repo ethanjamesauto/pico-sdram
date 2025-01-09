@@ -1,5 +1,6 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
+#include "hardware/dma.h"
 
 #include "sdram_cmd.h"
 
@@ -95,6 +96,26 @@ void sdram_init() {
     // gpio_disable_pulls(SDRAM_CS);
     // gpio_set_input_enabled(SDRAM_CS, false); // make sure the input circuitry is disconnected - https://forums.raspberrypi.com/viewtopic.php?t=312533
 
+    sdram_sm.read_chan = dma_claim_unused_channel(true);
+
+    // 8 bit transfers. Both read and write address increment after each
+    // transfer (each pointing to a location in src or dst respectively).
+    // No DREQ is selected, so the DMA transfers as fast as it can.
+
+    dma_channel_config c = dma_channel_get_default_config(sdram_sm.read_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, false);
+    channel_config_set_write_increment(&c, true);
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio2, sdram_sm.sm2, false));
+
+    dma_channel_configure(
+        sdram_sm.read_chan,          // Channel to be configured
+        &c,            // The configuration we just created
+        sdram_sm.read_buf,           // The initial write address
+        &sdram_sm.pio2->rxf[sdram_sm.sm2],           // The initial read address
+        4, // Number of transfers; in this case each is 1 byte.
+        false           // Start immediately.
+    );
 }
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
@@ -122,8 +143,6 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 
     switch_bus_mode(false, data_len); // set data bus to input mode
 
-    int read_ptr = 0;
-
     for (int i = 0; i < cmd_len; i += 2) {
         if (i + 1 < cmd_len) {
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
@@ -132,14 +151,21 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
         // pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
     }
 
+    dma_channel_set_write_addr(sdram_sm.read_chan, data, false);
+
+    // set transfer count and start
+    dma_channel_set_trans_count(sdram_sm.read_chan, data_len/2, true);
+
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
 
+    dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
+
     // keep reading until we've read all the data
-    while (read_ptr < data_len) {
+    /*while (read_ptr < data_len) {
         uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
         data[read_ptr++] = d & 0xffff;
         data[read_ptr++] = d >> 16;
-    }
+    }*/
 
     // wait for the last data to be sent
     // This should never be necessary, but it's here just in case
@@ -234,6 +260,27 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
     cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
     cmd[2] = process_cmd_v2(BURST_TERMINATE, false); 
     cmd[3] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    
+    sdram_exec_read(cmd, data, num_cmds, num_data);
+
+    // print the entire data array in one line
+    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
+    // printf("\n");
+}
+
+void sdram_read16(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 8;
+    const int num_data = 16;
+    uint32_t cmd[num_cmds];
+
+    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(NOP, false);
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+    cmd[3] = process_cmd_v2(BURST_TERMINATE, false); 
+    cmd[4] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
 
