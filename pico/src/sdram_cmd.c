@@ -101,7 +101,8 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
     switch_bus_mode(true, data_len); // set data bus to output mode
 
-    for (int i = 0; i < cmd_len; i += 2) {
+    int len = cmd_len > data_len ? cmd_len : data_len;
+    for (int i = 0; i < len; i += 2) {
         if (i + 1 < cmd_len) {
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
             pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
