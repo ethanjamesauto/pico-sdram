@@ -109,12 +109,12 @@ void sdram_init() {
     channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio2, sdram_sm.sm2, false));
 
     dma_channel_configure(
-        sdram_sm.read_chan,          // Channel to be configured
-        &c,            // The configuration we just created
-        sdram_sm.read_buf,           // The initial write address
-        &sdram_sm.pio2->rxf[sdram_sm.sm2],           // The initial read address
-        4, // Number of transfers; in this case each is 1 byte.
-        false           // Start immediately.
+        sdram_sm.read_chan,                         // Channel to be configured
+        &c,                                         // The configuration we just created
+        0,                                          // The initial write address (we set this later)
+        &sdram_sm.pio2->rxf[sdram_sm.sm2],          // The initial read address
+        4,                                          // Number of transfers; in this case each is 1 byte.
+        false                                       // Don't start immediately.
     );
 }
 

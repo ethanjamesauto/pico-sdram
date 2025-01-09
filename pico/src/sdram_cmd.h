@@ -60,8 +60,6 @@ typedef struct {
     int cmd_chan;
     int read_chan;
     int write_chan;
-
-    uint32_t read_buf[8];
 } sdram_sm_t;
 
 /**
