@@ -96,7 +96,9 @@ void sdram_init() {
     // gpio_disable_pulls(SDRAM_CS);
     // gpio_set_input_enabled(SDRAM_CS, false); // make sure the input circuitry is disconnected - https://forums.raspberrypi.com/viewtopic.php?t=312533
 
+    sdram_sm.cmd_chan = dma_claim_unused_channel(true);
     sdram_sm.read_chan = dma_claim_unused_channel(true);
+    sdram_sm.write_chan = dma_claim_unused_channel(true);
 
     // 8 bit transfers. Both read and write address increment after each
     // transfer (each pointing to a location in src or dst respectively).
@@ -113,7 +115,22 @@ void sdram_init() {
         &c,                                         // The configuration we just created
         0,                                          // The initial write address (we set this later)
         &sdram_sm.pio2->rxf[sdram_sm.sm2],          // The initial read address
-        4,                                          // Number of transfers; in this case each is 1 byte.
+        0,                                          // Number of transfers; in this case each is 1 byte.
+        false                                       // Don't start immediately.
+    );
+
+    c = dma_channel_get_default_config(sdram_sm.cmd_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, true);
+    channel_config_set_write_increment(&c, false);
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio, sdram_sm.sm, true));
+
+    dma_channel_configure(
+        sdram_sm.cmd_chan,                          // Channel to be configured
+        &c,                                         // The configuration we just created
+        &sdram_sm.pio->txf[sdram_sm.sm],            // The initial write address (we set this later)
+        0,                                          // The initial read address
+        0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
     );
 }
@@ -143,13 +160,8 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 
     switch_bus_mode(false, data_len); // set data bus to input mode
 
-    for (int i = 0; i < cmd_len; i += 2) {
-        if (i + 1 < cmd_len) {
-            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
-        }
-        // pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
-    }
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
+    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
 
     dma_channel_set_write_addr(sdram_sm.read_chan, data, false);
 
@@ -159,6 +171,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
 
     dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
+    dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
 
     // keep reading until we've read all the data
     /*while (read_ptr < data_len) {
@@ -269,11 +282,11 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
 }
 
 void sdram_read32(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 8;
+    const int num_cmds = 32;
     const int num_data = 32;
     uint32_t cmd[num_cmds];
 
-    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(NOP, false);
+    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd_v2(NOP, false);
 
     cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
