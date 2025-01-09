@@ -64,7 +64,7 @@ void test_pio() {
     uint16_t dat[8];
     sdram_read8(0, 0, dat);
     for (int i = 0; i < 8; i++) {
-        printf("%d ", dat[i]);
+        printf("%x ", dat[i]);
     }
     printf("\n");
     // for (int i = 0; i < 1000; i++) sdram_read1(0, 0);
@@ -156,7 +156,7 @@ void sdram_wait() {
     }
     // this is needed to allow the final commands to be executed after the tx fifos are empty
     // TODO: find a more elegant solution
-    sleep_us(1);
+    sleep_us(5);
     // for (int i = 0; i < 15; i++) tight_loop_contents();
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);

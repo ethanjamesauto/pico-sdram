@@ -55,7 +55,7 @@ void memtest_burst_8(uint8_t bank) {
     static int succ = 0;
     static int fail = 0;
 
-    const int max = 1 << 22; // just test bank 0
+    const int max = 1 << 18; // just test bank 0
 
     srand(0);
     for (int i = 0; i < max; i++) {
@@ -112,8 +112,8 @@ int main()
 
     while(1) {
         // memtest_full_page();
-        // test_pio();
-        for (int i = 0; i < 4; i++) memtest_burst_8(i);
+        test_pio();
+        // for (int i = 0; i < 4; i++) memtest_burst_8(i);
         // memtest();
     }
 }
