@@ -55,13 +55,13 @@ uint32_t get_addr_word(uint32_t a) {
 void test_pio() {
     sdram_startup();
 
-    for (int i = 0; i < 8; i++) {
-        sdram_write1(i, 0, i + 2);
-    }
-    // uint16_t dat[4];
-    // sdram_read4(0, 0, dat);
-    // printf("%d %d %d %d\n", dat[0], dat[1], dat[2], dat[3]);
+    // for (int i = 0; i < 8; i++) {
+    //     sdram_write1(i, 0, i + 3);
+    // }
     uint16_t dat[8];
+    for (int i = 0; i < 8; i++) dat[i] = 8 + i;
+    sdram_write8(0, 0, dat);
+
     sdram_read8(0, 0, dat);
     for (int i = 0; i < 8; i++) {
         printf("%d ", dat[i]);
@@ -181,6 +181,21 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     cmd[3] = process_cmd_v2(NOP, false);
 
     sdram_exec(cmd, dat, num_cmds, num_data);
+}
+
+void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 8;
+    uint32_t cmd[num_cmds];
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd_v2(NOP, false);
+
+    sdram_exec(cmd, data, num_cmds, num_data);
 }
 
 uint16_t sdram_read1(uint32_t addr, uint8_t bank) {

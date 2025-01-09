@@ -109,6 +109,8 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
 
+void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
+
 /**
  * Perform a full page read.
  * Note that this function will simply read the given number of words at the given
