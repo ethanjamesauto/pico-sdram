@@ -37,19 +37,19 @@
 
 typedef struct {
     // cmd/addr bus sm
-    PIO pio;
-    uint sm;
-    uint offset;
+    PIO cmd_bus_pio;
+    uint cmd_bus_sm;
+    uint cmd_bus_offset;
     
     // data bus sm
-    PIO pio2;
-    uint sm2;
-    uint offset2;
+    PIO data_bus_pio;
+    uint data_bus_sm;
+    uint data_bus_offset;
 
     // clock generator sm
-    PIO pio3;
-    uint sm3;
-    uint offset3;
+    PIO clkgen_pio;
+    uint clkgen_sm;
+    uint clkgen_offset;
 
     // true - output, false - input
     bool bus_mode;
@@ -109,14 +109,14 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank);
 
 // These are burst read functions - they are not completely implemented yet
 // as they do not update the mode register to configure the burst length
-void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
-void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
+void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data);
+
+void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
 
 void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data);
 void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data);
-
-void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
 
 /**
  * Change the direction of the data bus

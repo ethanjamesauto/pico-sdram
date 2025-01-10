@@ -17,9 +17,9 @@ sdram_sm_t sdram_sm;
 void switch_bus_mode(bool is_out, uint32_t size) {
     if (is_out != sdram_sm.bus_mode) {
         sdram_sm.bus_mode = is_out;
-        pio_sm_set_consecutive_pindirs(sdram_sm.pio2, sdram_sm.sm2, DATA_BASE, DATA_WIDTH, is_out);
+        pio_sm_set_consecutive_pindirs(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, DATA_BASE, DATA_WIDTH, is_out);
         
-        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2 + (is_out ? 0 : 4));        
+        pio_sm_exec(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, sdram_sm.data_bus_offset + (is_out ? 0 : 4));        
         // set pullups
         // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, !is_out, false);
 
@@ -28,9 +28,9 @@ void switch_bus_mode(bool is_out, uint32_t size) {
     }
 
     if (size != sdram_sm.data_size) {
-        pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, size - 1);
-        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, 0x6040);
-        pio_sm_exec(sdram_sm.pio2, sdram_sm.sm2, 0xa022);
+        pio_sm_put_blocking(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, size - 1);
+        pio_sm_exec(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, 0x6040);
+        pio_sm_exec(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, 0xa022);
         sdram_sm.data_size = size;
     }
 }
@@ -73,19 +73,19 @@ void test_pio() {
 }
 
 void sdram_init() {
-    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.pio, &sdram_sm.sm, &sdram_sm.offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
+    bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.cmd_bus_pio, &sdram_sm.cmd_bus_sm, &sdram_sm.cmd_bus_offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
     hard_assert(success);
 
-    success = pio_claim_free_sm_and_add_program_for_gpio_range(&data_bus_program, &sdram_sm.pio2, &sdram_sm.sm2, &sdram_sm.offset2, DATA_BASE, DATA_WIDTH, true);
+    success = pio_claim_free_sm_and_add_program_for_gpio_range(&data_bus_program, &sdram_sm.data_bus_pio, &sdram_sm.data_bus_sm, &sdram_sm.data_bus_offset, DATA_BASE, DATA_WIDTH, true);
     hard_assert(success);
 
-    success = pio_claim_free_sm_and_add_program_for_gpio_range(&clkgen_program, &sdram_sm.pio3, &sdram_sm.sm3, &sdram_sm.offset3, SDRAM_CLK, 1, true);
+    success = pio_claim_free_sm_and_add_program_for_gpio_range(&clkgen_program, &sdram_sm.clkgen_pio, &sdram_sm.clkgen_sm, &sdram_sm.clkgen_offset, SDRAM_CLK, 1, true);
     hard_assert(success);
 
-    three_74hc595_program_init(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset, CMD_SM_SHIFT_OUT_BASE, CMD_SM_SIDESET_BASE);
-    data_bus_program_init(sdram_sm.pio2, sdram_sm.sm2, sdram_sm.offset2, DATA_BASE);
-    clkgen_program_init(sdram_sm.pio3, sdram_sm.sm3, sdram_sm.offset3, SDRAM_CLK);
-    pio_clkdiv_restart_sm_mask(sdram_sm.pio, 1u << sdram_sm.sm | 1u << sdram_sm.sm2 | 1u << sdram_sm.sm3);
+    three_74hc595_program_init(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, sdram_sm.cmd_bus_offset, CMD_SM_SHIFT_OUT_BASE, CMD_SM_SIDESET_BASE);
+    data_bus_program_init(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, sdram_sm.data_bus_offset, DATA_BASE);
+    clkgen_program_init(sdram_sm.clkgen_pio, sdram_sm.clkgen_sm, sdram_sm.clkgen_offset, SDRAM_CLK);
+    pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm);
 
     sdram_sm.bus_mode = true;
     sdram_sm.data_size = 0;
@@ -106,13 +106,13 @@ void sdram_init() {
     channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     channel_config_set_read_increment(&c, false);
     channel_config_set_write_increment(&c, true);
-    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio2, sdram_sm.sm2, false));
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, false));
 
     dma_channel_configure(
         sdram_sm.read_chan,                         // Channel to be configured
         &c,                                         // The configuration we just created
         0,                                          // The initial write address (we set this later)
-        &sdram_sm.pio2->rxf[sdram_sm.sm2],          // The initial read address
+        &sdram_sm.data_bus_pio->rxf[sdram_sm.data_bus_sm],          // The initial read address
         0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
     );
@@ -121,12 +121,12 @@ void sdram_init() {
     channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, false);
-    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio2, sdram_sm.sm2, true));
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, true));
 
     dma_channel_configure(
         sdram_sm.write_chan,                        // Channel to be configured
         &c,                                         // The configuration we just created
-        &sdram_sm.pio2->txf[sdram_sm.sm2],          // The initial write address 
+        &sdram_sm.data_bus_pio->txf[sdram_sm.data_bus_sm],          // The initial write address 
         0,                                          // The initial read address (we set this later)
         0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
@@ -136,12 +136,12 @@ void sdram_init() {
     channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     channel_config_set_read_increment(&c, true);
     channel_config_set_write_increment(&c, false);
-    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio, sdram_sm.sm, true));
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, true));
 
     dma_channel_configure(
         sdram_sm.cmd_chan,                          // Channel to be configured
         &c,                                         // The configuration we just created
-        &sdram_sm.pio->txf[sdram_sm.sm],            // The initial write address
+        &sdram_sm.cmd_bus_pio->txf[sdram_sm.cmd_bus_sm],            // The initial write address
         0,                                          // The initial read address (we set this later)
         0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
@@ -158,7 +158,7 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
     dma_channel_set_read_addr(sdram_sm.write_chan, data, false);
     dma_channel_set_trans_count(sdram_sm.write_chan, data_len/2, true);
 
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, true);
 
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.write_chan);
@@ -179,7 +179,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     dma_channel_set_write_addr(sdram_sm.read_chan, data, false);
     dma_channel_set_trans_count(sdram_sm.read_chan, data_len/2, true);
 
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, true);
 
     dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
@@ -192,7 +192,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
  * Wait for all operations to finish
  */
 void sdram_wait() {
-    while(pio_sm_is_tx_fifo_empty(sdram_sm.pio, sdram_sm.sm) == false) {
+    while(pio_sm_is_tx_fifo_empty(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm) == false) {
         tight_loop_contents();
     }
     // this is needed to allow the final commands to be executed after the tx fifos are empty
@@ -200,8 +200,8 @@ void sdram_wait() {
     sleep_us(1);
     // for (int i = 0; i < 15; i++) tight_loop_contents();
 
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, false);
-    pio_sm_exec(sdram_sm.pio, sdram_sm.sm, sdram_sm.offset | 0x1000);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, false);
+    pio_sm_exec(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, sdram_sm.cmd_bus_offset | 0x1000);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
@@ -223,23 +223,6 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     sdram_exec(cmd, dat, num_cmds, num_data);
 }
 
-void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 8;
-    const int num_data = 8;
-    uint32_t cmd[num_cmds];
-
-    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(NOP, false);
-
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
-
-    // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
-    cmd[2] = process_cmd_v2(BURST_TERMINATE, false);
-    cmd[3] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
-
-    sdram_exec(cmd, data, num_cmds, num_data);
-}
-
 uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     const int num_cmds = 4;
     const int num_data = 2;
@@ -259,20 +242,33 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
 }
 
 void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
-    const int num_cmds = 8;
+    const int num_cmds = 4;
     const int num_data = 8;
     uint32_t cmd[num_cmds];
-
-    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(NOP, false);
 
     cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
-    cmd[2] = process_cmd_v2(BURST_TERMINATE, false); 
-    cmd[3] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd_v2(NOP, false); 
+    cmd[3] = process_cmd_v2(NOP, false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
+}
+
+void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data) {
+    const int num_cmds = 4;
+    const int num_data = 8;
+    uint32_t cmd[num_cmds];
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true);
+    cmd[2] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd_v2(NOP, false);
+    
+    sdram_exec(cmd, data, num_cmds, num_data);
 }
 
 void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data) {
@@ -329,24 +325,17 @@ void sdram_startup() {
     cmd[5] = process_cmd_v2(AUTO_REFRESH, false);
     cmd[6] = process_cmd_v2(NOP, false);
 
-    for (int i = 0; i < 7; i++) {
-        pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-    }
-
-    pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
-
-    // wait for the refresh to finish
-    sdram_wait();
+    sdram_exec(cmd, 0, 7, 0);
 }
 
 inline uint32_t process_cmd_v2(uint32_t cmd, bool is_rw) {
     cmd |= PIN_SDRAM_CKE;
     cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
     
-    uint32_t jmp_addr = sdram_sm.offset + 9;
+    uint32_t jmp_addr = sdram_sm.cmd_bus_offset + 9;
 
     if (is_rw) {
-        jmp_addr = sdram_sm.offset + 7;
+        jmp_addr = sdram_sm.cmd_bus_offset + 7;
     }
 
     cmd |= (jmp_addr << 3);

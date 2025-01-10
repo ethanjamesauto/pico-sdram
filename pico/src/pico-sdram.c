@@ -49,7 +49,7 @@ void memtest() {
     else printf("ERROR: Errors found!\n");
 }
 
-void memtest_burst_8(uint8_t bank) {
+void memtest_full_page(uint8_t bank) {
     static int succ = 0;
     static int fail = 0;
 
@@ -93,17 +93,6 @@ void memtest_burst_8(uint8_t bank) {
     }
 }
 
-void memtest_full_page() {
-    sdram_startup();
-    for (int i = 0; i < 1024; i++) {
-        sdram_write1(i, 0, i);
-    }
-    refresh_all();
-
-    uint16_t data[2];
-    sdram_read_page(32, 0, data, 2);
-}
-
 int main()
 {
     set_sys_clock_khz(100000, false);
@@ -115,7 +104,7 @@ int main()
     while(1) {
         // memtest_full_page();
         // test_pio();
-        for (int i = 0; i < 4; i++) memtest_burst_8(i);
+        for (int i = 0; i < 4; i++) memtest_full_page(i);
         // memtest();
     }
 }
