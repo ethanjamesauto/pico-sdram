@@ -85,7 +85,10 @@ void sdram_init() {
     three_74hc595_program_init(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, sdram_sm.cmd_bus_offset, CMD_SM_SHIFT_OUT_BASE, CMD_SM_SIDESET_BASE);
     data_bus_program_init(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, sdram_sm.data_bus_offset, DATA_BASE);
     clkgen_program_init(sdram_sm.clkgen_pio, sdram_sm.clkgen_sm, sdram_sm.clkgen_offset, SDRAM_CLK);
+
+    // sync clock dividers and start clkgen/data bus sm
     pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, true);
 
     sdram_sm.bus_mode = true;
     sdram_sm.data_size = 0;
