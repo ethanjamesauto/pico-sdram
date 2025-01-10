@@ -16,6 +16,8 @@ sdram_sm_t sdram_sm;
 // switch bus mode between input and output
 void switch_bus_mode(bool is_out, uint32_t size) {
     if (is_out != sdram_sm.bus_mode) {
+        // TODO: need to add checks to ensure all SMs have finished execution
+
         sdram_sm.bus_mode = is_out;
         pio_sm_set_consecutive_pindirs(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, DATA_BASE, DATA_WIDTH, is_out);
         
