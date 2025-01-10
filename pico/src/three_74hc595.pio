@@ -1,32 +1,35 @@
-; WIP! WIP! WIP!
 ; This program drives 3 74HC595 shift registers to control 24 outputs.
+
+; The program is synchronized with another state machine that drives a clock pin on gpio 22.
+; The program continuously outputs 8 bits of data to each of the 3 shift registers
+; at the maximum possible speed - there are no additional waiting cycles unless the
+; SM is out of sync with the clock on gpio 22. In that case, 
+; the SM will wait a cycle to resync with the clock.
 .program three_74hc595
 
-; sideset pins - rclk | srclk - (register clock | serial clock)
+; sideset pins - rclk - (register clock)
 .side_set 1
 
 .wrap_target
-
 start:
 out pins, 3         side 1
-wait 0 gpio 22      side 1
+wait 0 gpio 22      side 1  ; sync with the SDRAM/shift-register clock (gpio 22). If this SM is out of sync, this will stall for an additional cycle and resync.
 out pins, 3         side 1
-set x, 3            side 1
+set x, 3            side 1  ; set loop counter
 
 loop:
     out pins, 3     side 1
     jmp x-- loop    side 1
 
 out pins, 3         side 1
-out pc, 5           side 1
-; nop side 1
+out pc, 5           side 1  ; these 5 bits contain the address of the next instruction to jump to (either to "read_write", or "no_read_write")
 
-read_write:
+read_write:                 ; if we jump here, then IRQ 7 will be set before jumping back to the beginning - this signals the data bus to start reading/writing
 out pins, 3         side 0
 irq set 7           side 0
 .wrap
 
-no_read_write:
+no_read_write:              ; if we jump here, the program will jump back to the beginning without setting the IRQ
 out pins, 3         side 0
 jmp start           side 0
 
@@ -44,8 +47,8 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
     // parameter to this function.
     sm_config_set_out_pins(&c, pin, NUM_PINS);
     sm_config_set_sideset_pins(&c, sidepin);
-    sm_config_set_out_shift(&c, false, true, 24 + 5); // shift_right=true, autopull=true, pull_threshold=24
-    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX); // TODO: maybe reconsider?
+    sm_config_set_out_shift(&c, false, true, 24 + 5); // shift_right=true, autopull=true, pull_threshold=24+5
+    sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);    // we might as well increase the size of the TX fifo as RX is not used
     sm_config_set_clkdiv(&c, CLKDIV);
 
     // Set this pin's GPIO function (connect PIO to the pad)
@@ -64,6 +67,7 @@ static inline void three_74hc595_program_init(PIO pio, uint sm, uint offset, uin
 
     // Load our configuration, and jump to the start of the program
     pio_sm_init(pio, sm, offset, &c);
+    
     // Set the state machine running
     // pio_sm_set_enabled(pio, sm, true);
 }
