@@ -213,12 +213,12 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     dat[0] = data;
     dat[1] = 0;
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
-    cmd[2] = process_cmd_v2(NOP, false);
-    cmd[3] = process_cmd_v2(NOP, false);
+    cmd[1] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd(NOP, false);
+    cmd[3] = process_cmd(NOP, false);
 
     sdram_exec(cmd, dat, num_cmds, num_data);
 }
@@ -229,12 +229,12 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     uint32_t cmd[num_cmds];
     uint16_t dat[num_data];
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
-    cmd[2] = process_cmd_v2(NOP, false);
-    cmd[3] = process_cmd_v2(NOP, false);    
+    cmd[1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd(NOP, false);
+    cmd[3] = process_cmd(NOP, false);    
     
     sdram_exec_read(cmd, dat, num_cmds, num_data);
 
@@ -246,12 +246,12 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
     const int num_data = 8;
     uint32_t cmd[num_cmds];
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
-    cmd[2] = process_cmd_v2(NOP, false); 
-    cmd[3] = process_cmd_v2(NOP, false); 
+    cmd[1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true); 
+    cmd[2] = process_cmd(NOP, false); 
+    cmd[3] = process_cmd(NOP, false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
 }
@@ -261,12 +261,12 @@ void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data) {
     const int num_data = 8;
     uint32_t cmd[num_cmds];
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true);
-    cmd[2] = process_cmd_v2(NOP, false);
-    cmd[3] = process_cmd_v2(NOP, false);
+    cmd[1] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff) | PIN_SDRAM_ADDR10, true);
+    cmd[2] = process_cmd(NOP, false);
+    cmd[3] = process_cmd(NOP, false);
     
     sdram_exec(cmd, data, num_cmds, num_data);
 }
@@ -276,15 +276,15 @@ void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_d
     int num_cmds = 2 + burst_term + 1 + 1;
     uint32_t cmd[num_cmds];
 
-    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd_v2(NOP, false);
+    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd(NOP, false);
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+    cmd[1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
 
-    cmd[1 + burst_term] = process_cmd_v2(BURST_TERMINATE, false); 
-    cmd[2 + burst_term] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    cmd[1 + burst_term] = process_cmd(BURST_TERMINATE, false); 
+    cmd[2 + burst_term] = process_cmd(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
 }
@@ -294,41 +294,41 @@ void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_
     int num_cmds = 2 + burst_term + 1 + 1;
     uint32_t cmd[num_cmds];
 
-    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd_v2(NOP, false);
+    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd(NOP, false);
 
-    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+    cmd[0] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
 
     // ADDR10 results in an auto-precharge
-    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+    cmd[1] = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
 
-    cmd[1 + burst_term] = process_cmd_v2(BURST_TERMINATE, false); 
-    cmd[2 + burst_term] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    cmd[1 + burst_term] = process_cmd(BURST_TERMINATE, false); 
+    cmd[2 + burst_term] = process_cmd(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec(cmd, data, num_cmds, num_data);
 }
 
 void refresh_all() {
     uint32_t cmd[8];
-    for (int i = 0; i < 8; i++) cmd[i] = process_cmd_v2(AUTO_REFRESH, false);
+    for (int i = 0; i < 8; i++) cmd[i] = process_cmd(AUTO_REFRESH, false);
     for (int i = 0; i < 8192/8 + 1; i++) sdram_exec(cmd, 0, 8, 0);
 }
 
 void sdram_startup() {
     uint32_t cmd[7];
-    cmd[0] = process_cmd_v2(PRECHARGE_ALL, false);
-    cmd[1] = process_cmd_v2(AUTO_REFRESH, false);
-    cmd[2] = process_cmd_v2(AUTO_REFRESH, false);
+    cmd[0] = process_cmd(PRECHARGE_ALL, false);
+    cmd[1] = process_cmd(AUTO_REFRESH, false);
+    cmd[2] = process_cmd(AUTO_REFRESH, false);
 
     uint32_t mode = get_mode_word(MODE_BURST_LEN_FULL, MODE_ADDR_MODE_SEQUENTIAL, MODE_CAS_LATENCY_3, MODE_WRITE_MODE_BURST);
-    cmd[3] = process_cmd_v2(mode | LOAD_MODE, false);
-    cmd[4] = process_cmd_v2(NOP, false);
-    cmd[5] = process_cmd_v2(AUTO_REFRESH, false);
-    cmd[6] = process_cmd_v2(NOP, false);
+    cmd[3] = process_cmd(mode | LOAD_MODE, false);
+    cmd[4] = process_cmd(NOP, false);
+    cmd[5] = process_cmd(AUTO_REFRESH, false);
+    cmd[6] = process_cmd(NOP, false);
 
     sdram_exec(cmd, 0, 7, 0);
 }
 
-inline uint32_t process_cmd_v2(uint32_t cmd, bool is_rw) {
+inline uint32_t process_cmd(uint32_t cmd, bool is_rw) {
     cmd |= PIN_SDRAM_CKE;
     cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
     
