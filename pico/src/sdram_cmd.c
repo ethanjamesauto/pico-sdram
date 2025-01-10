@@ -87,8 +87,9 @@ void sdram_init() {
     clkgen_program_init(sdram_sm.clkgen_pio, sdram_sm.clkgen_sm, sdram_sm.clkgen_offset, SDRAM_CLK);
 
     // sync clock dividers and start clkgen/data bus sm
+    // pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, false); // not needed - they should already be turned off
     pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm);
-    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, true);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, true);
 
     sdram_sm.bus_mode = true;
     sdram_sm.data_size = 0;
@@ -155,19 +156,14 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
     switch_bus_mode(true, data_len); // set data bus to output mode
 
-    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
-    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
-
     dma_channel_set_read_addr(sdram_sm.write_chan, data, false);
     dma_channel_set_trans_count(sdram_sm.write_chan, data_len/2, true);
 
-    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, true);
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
+    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
 
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.write_chan);
-
-    // wait for the last data to be sent
-    sdram_wait();
 }
 
 // TODO: no need to store the data in the data array, just read it directly from the fifo
@@ -176,35 +172,14 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 
     switch_bus_mode(false, data_len); // set data bus to input mode
 
-    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
-    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
-
     dma_channel_set_write_addr(sdram_sm.read_chan, data, false);
     dma_channel_set_trans_count(sdram_sm.read_chan, data_len/2, true);
 
-    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, true);
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
+    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
 
     dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
-
-    // wait for the last data to be sent
-    sdram_wait();
-}
-
-/**
- * Wait for all operations to finish
- */
-void sdram_wait() {
-    while(pio_sm_is_tx_fifo_empty(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm) == false) {
-        tight_loop_contents();
-    }
-    // this is needed to allow the final commands to be executed after the tx fifos are empty
-    // TODO: find a more elegant solution
-    sleep_us(1);
-    // for (int i = 0; i < 15; i++) tight_loop_contents();
-
-    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm, false);
-    pio_sm_exec(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, sdram_sm.cmd_bus_offset | 0x1000);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
@@ -335,10 +310,10 @@ inline uint32_t process_cmd(uint32_t cmd, bool is_rw) {
     cmd |= PIN_SDRAM_CKE;
     cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
     
-    uint32_t jmp_addr = sdram_sm.cmd_bus_offset + 9;
+    uint32_t jmp_addr = sdram_sm.cmd_bus_offset + 10;
 
     if (is_rw) {
-        jmp_addr = sdram_sm.cmd_bus_offset + 7;
+        jmp_addr = sdram_sm.cmd_bus_offset + 8;
     }
 
     cmd |= (jmp_addr << 3);

@@ -5,14 +5,13 @@
 ; sideset pins - rclk | srclk - (register clock | serial clock)
 .side_set 1
 
-; wait 1 gpio 22      side 1      ; TODO: see if it's 1 or 0
-wait 0 gpio 22      side 1      ; TODO: see if it's 1 or 0
-
 .wrap_target
 
 start:
 out pins, 3         side 1
-set x, 4            side 1
+wait 0 gpio 22      side 1
+out pins, 3         side 1
+set x, 3            side 1
 
 loop:
     out pins, 3     side 1

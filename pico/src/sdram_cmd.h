@@ -84,11 +84,6 @@ void refresh_all();
 void sdram_startup();
 
 /**
- * Wait for the current command to finish
- */
-void sdram_wait();
-
-/**
  * Write a single 16-bit word to the SDRAM
  * The mode register MUST be configured correctly before calling this function
  * addr - 22-bit address
