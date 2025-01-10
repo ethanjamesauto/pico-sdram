@@ -114,6 +114,7 @@ void sdram_read4(uint32_t addr, uint8_t bank, uint16_t* data);
 void sdram_read2(uint32_t addr, uint8_t bank, uint16_t* data);
 
 void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data);
+void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data);
 
 void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data);
 

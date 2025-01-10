@@ -100,11 +100,9 @@ void sdram_init() {
     sdram_sm.read_chan = dma_claim_unused_channel(true);
     sdram_sm.write_chan = dma_claim_unused_channel(true);
 
-    // 8 bit transfers. Both read and write address increment after each
-    // transfer (each pointing to a location in src or dst respectively).
-    // No DREQ is selected, so the DMA transfers as fast as it can.
+    dma_channel_config c;
 
-    dma_channel_config c = dma_channel_get_default_config(sdram_sm.read_chan);
+    c = dma_channel_get_default_config(sdram_sm.read_chan);
     channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     channel_config_set_read_increment(&c, false);
     channel_config_set_write_increment(&c, true);
@@ -119,6 +117,21 @@ void sdram_init() {
         false                                       // Don't start immediately.
     );
 
+    c = dma_channel_get_default_config(sdram_sm.write_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, true);
+    channel_config_set_write_increment(&c, false);
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.pio2, sdram_sm.sm2, true));
+
+    dma_channel_configure(
+        sdram_sm.write_chan,                        // Channel to be configured
+        &c,                                         // The configuration we just created
+        &sdram_sm.pio2->txf[sdram_sm.sm2],          // The initial write address 
+        0,                                          // The initial read address (we set this later)
+        0,                                          // Number of transfers; in this case each is 1 byte.
+        false                                       // Don't start immediately.
+    );
+
     c = dma_channel_get_default_config(sdram_sm.cmd_chan);
     channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
     channel_config_set_read_increment(&c, true);
@@ -128,8 +141,8 @@ void sdram_init() {
     dma_channel_configure(
         sdram_sm.cmd_chan,                          // Channel to be configured
         &c,                                         // The configuration we just created
-        &sdram_sm.pio->txf[sdram_sm.sm],            // The initial write address (we set this later)
-        0,                                          // The initial read address
+        &sdram_sm.pio->txf[sdram_sm.sm],            // The initial write address
+        0,                                          // The initial read address (we set this later)
         0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
     );
@@ -139,16 +152,16 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
 
     switch_bus_mode(true, data_len); // set data bus to output mode
 
-    int len = cmd_len > data_len ? cmd_len : data_len;
-    for (int i = 0; i < len; i += 2) {
-        if (i + 1 < cmd_len) {
-            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i]);
-            pio_sm_put_blocking(sdram_sm.pio, sdram_sm.sm, cmd[i + 1]);
-        }
-        if (i + 1 < data_len) pio_sm_put_blocking(sdram_sm.pio2, sdram_sm.sm2, (data[i + 1] << 16) | data[i]);
-    }
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
+    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
+
+    dma_channel_set_read_addr(sdram_sm.write_chan, data, false);
+    dma_channel_set_trans_count(sdram_sm.write_chan, data_len/2, true);
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
+
+    dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
+    dma_channel_wait_for_finish_blocking(sdram_sm.write_chan);
 
     // wait for the last data to be sent
     sdram_wait();
@@ -164,8 +177,6 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
 
     dma_channel_set_write_addr(sdram_sm.read_chan, data, false);
-
-    // set transfer count and start
     dma_channel_set_trans_count(sdram_sm.read_chan, data_len/2, true);
 
     pio_set_sm_mask_enabled(sdram_sm.pio, 1u << sdram_sm.sm, true);
@@ -173,15 +184,7 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
 
-    // keep reading until we've read all the data
-    /*while (read_ptr < data_len) {
-        uint32_t d = pio_sm_get_blocking(sdram_sm.pio2, sdram_sm.sm2);
-        data[read_ptr++] = d & 0xffff;
-        data[read_ptr++] = d >> 16;
-    }*/
-
     // wait for the last data to be sent
-    // This should never be necessary, but it's here just in case
     sdram_wait();
 }
 
@@ -252,11 +255,6 @@ uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     
     sdram_exec_read(cmd, dat, num_cmds, num_data);
 
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
-    // printf("\n");
-
-
     return dat[0]; // with cas latency of 3, the data is 3 cycles after the read command
 }
 
@@ -275,10 +273,6 @@ void sdram_read8(uint32_t addr, uint8_t bank, uint16_t* data) {
     cmd[3] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
-
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
-    // printf("\n");
 }
 
 void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data) {
@@ -297,10 +291,24 @@ void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_d
     cmd[2 + burst_term] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
     
     sdram_exec_read(cmd, data, num_cmds, num_data);
+}
 
-    // print the entire data array in one line
-    // for (int i = 0; i < num_data; i++) printf("%04x ", dat[i]);
-    // printf("\n");
+void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data) {
+    int burst_term = num_data / 8;
+    int num_cmds = 2 + burst_term + 1 + 1;
+    uint32_t cmd[num_cmds];
+
+    for (int i = 0; i < num_cmds; i++) cmd[i] = process_cmd_v2(NOP, false);
+
+    cmd[0] = process_cmd_v2(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[1] = process_cmd_v2(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+
+    cmd[1 + burst_term] = process_cmd_v2(BURST_TERMINATE, false); 
+    cmd[2 + burst_term] = process_cmd_v2(PRECHARGE | get_bank_word(bank), false); 
+    
+    sdram_exec(cmd, data, num_cmds, num_data);
 }
 
 void refresh_all() {
@@ -310,8 +318,6 @@ void refresh_all() {
 }
 
 void sdram_startup() {
-    // switch_bus_mode(true); // set data bus to output mode
-
     uint32_t cmd[7];
     cmd[0] = process_cmd_v2(PRECHARGE_ALL, false);
     cmd[1] = process_cmd_v2(AUTO_REFRESH, false);

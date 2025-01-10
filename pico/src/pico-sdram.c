@@ -55,19 +55,19 @@ void memtest_burst_8(uint8_t bank) {
 
     const int max = 1 << 22; // just test bank 0
 
-    for (int i = 0; i < max; i += 8) {
-        uint16_t write_dat[8];
+    const int num_write = 512;
+    for (int i = 0; i < max; i += num_write) {
+        uint16_t write_dat[num_write];
 
-        for (int j = 0; j < 8; j++) {
+        for (int j = 0; j < num_write; j++) {
             write_dat[j] = get_data(i + j);
         }
 
-        sdram_write8(i, bank, write_dat);
-        if (i % (1 << 13) == 0) refresh_all();
-        if (i % (1 << 16) == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
+        sdram_write_page(i, bank, write_dat, num_write);
+        if (i % (1 << 15) == 0) refresh_all();
+        if (i % (1 << 18) == 0) printf("Write Progress: %.1f%%\n", (float)i / (float)max * 100.0);
     }
     
-
     bool errors = false;
 
     const uint16_t num_read = 512;
