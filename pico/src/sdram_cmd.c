@@ -7,8 +7,13 @@
 #include "three_74hc595.pio.h"
 #include "data_bus.pio.h"
 #include "clkgen.pio.h"
+#include "hsync.pio.h"
+#include "vsync.pio.h"
 
 #include <stdio.h>
+
+#define HSYNC_GPIO 28
+#define VSYNC_GPIO 16
 
 // variable for storing all pio sm offsets, etc.
 sdram_sm_t sdram_sm;
@@ -74,6 +79,11 @@ void test_pio() {
     // printf("%d\n", dat);
 }
 
+void debug_print() {
+    printf("cmd_bus: %d, data_bus: %d, clkgen: %d, hsync: %d, vsync: %d\n", 
+        sdram_sm.cmd_bus_pio, sdram_sm.data_bus_pio, sdram_sm.clkgen_pio, sdram_sm.hsync_pio, sdram_sm.vsync_pio);
+}
+
 void sdram_init() {
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.cmd_bus_pio, &sdram_sm.cmd_bus_sm, &sdram_sm.cmd_bus_offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
     hard_assert(success);
@@ -84,14 +94,28 @@ void sdram_init() {
     success = pio_claim_free_sm_and_add_program_for_gpio_range(&clkgen_program, &sdram_sm.clkgen_pio, &sdram_sm.clkgen_sm, &sdram_sm.clkgen_offset, SDRAM_CLK, 1, true);
     hard_assert(success);
 
+    success = pio_claim_free_sm_and_add_program_for_gpio_range(&hsync_program, &sdram_sm.hsync_pio, &sdram_sm.hsync_sm, &sdram_sm.hsync_offset, HSYNC_GPIO, 1, true);
+    hard_assert(success);
+
+    success = pio_claim_free_sm_and_add_program_for_gpio_range(&vsync_program, &sdram_sm.vsync_pio, &sdram_sm.vsync_sm, &sdram_sm.vsync_offset, VSYNC_GPIO, 1, true);
+    hard_assert(success);
+
+    hard_assert(sdram_sm.clkgen_pio == sdram_sm.hsync_pio);
+    hard_assert(sdram_sm.vsync_pio != sdram_sm.hsync_pio);
+
     three_74hc595_program_init(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, sdram_sm.cmd_bus_offset, CMD_SM_SHIFT_OUT_BASE, CMD_SM_SIDESET_BASE);
     data_bus_program_init(sdram_sm.data_bus_pio, sdram_sm.data_bus_sm, sdram_sm.data_bus_offset, DATA_BASE);
     clkgen_program_init(sdram_sm.clkgen_pio, sdram_sm.clkgen_sm, sdram_sm.clkgen_offset, SDRAM_CLK);
 
+    hsync_program_init(sdram_sm.hsync_pio, sdram_sm.hsync_sm, sdram_sm.hsync_offset, HSYNC_GPIO);
+    vsync_program_init(sdram_sm.vsync_pio, sdram_sm.vsync_sm, sdram_sm.vsync_offset, VSYNC_GPIO);
+
     // sync clock dividers and start clkgen/data bus sm
     // pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, false); // not needed - they should already be turned off
-    pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm);
-    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm, true);
+    pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm | 1u << sdram_sm.hsync_sm);
+    pio_clkdiv_restart_sm_mask(sdram_sm.vsync_pio, 1u << sdram_sm.vsync_sm);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.data_bus_sm | 1u << sdram_sm.clkgen_sm | 1u << sdram_sm.hsync_sm, true);
+    pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
 
     sdram_sm.bus_mode = true;
     sdram_sm.data_size = 0;

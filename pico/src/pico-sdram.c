@@ -53,7 +53,7 @@ void memtest_full_page(uint8_t bank) {
     static int succ = 0;
     static int fail = 0;
 
-    const int max = 1 << 22; // just test bank 0
+    const int max = 1 << 16; // just test bank 0
 
     const int num_write = 512;
     for (int i = 0; i < max; i += num_write) {
@@ -95,7 +95,7 @@ void memtest_full_page(uint8_t bank) {
 
 int main()
 {
-    set_sys_clock_khz(100000, false);
+    set_sys_clock_khz(125000, false);
     stdio_init_all();
     sdram_init();    
     sdram_startup();

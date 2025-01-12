@@ -51,6 +51,16 @@ typedef struct {
     uint clkgen_sm;
     uint clkgen_offset;
 
+    // hsync sm
+    PIO hsync_pio;
+    uint hsync_sm;
+    uint hsync_offset;
+
+    // vsync sm
+    PIO vsync_pio;
+    uint vsync_sm;
+    uint vsync_offset;
+
     // true - output, false - input
     bool bus_mode;
 
@@ -61,6 +71,8 @@ typedef struct {
     int read_chan;
     int write_chan;
 } sdram_sm_t;
+
+void debug_print();
 
 /**
  * Initialize the SDRAM state machines
