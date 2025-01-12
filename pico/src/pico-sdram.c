@@ -95,16 +95,12 @@ void memtest_full_page(uint8_t bank) {
 
 int main()
 {
-    set_sys_clock_khz(125000, false);
+    set_sys_clock_khz(120000, false);
     stdio_init_all();
     sdram_init();    
     sdram_startup();
     debug_init();
 
-    while(1) {
-        // memtest_full_page();
-        // test_pio();
-        for (int i = 0; i < 4; i++) memtest_full_page(i);
-        // memtest();
-    }
+    vga_init();
+    vga_send();
 }

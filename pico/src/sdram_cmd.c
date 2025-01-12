@@ -31,7 +31,7 @@ void switch_bus_mode(bool is_out, uint32_t size) {
         // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, !is_out, false);
 
         // set pulldowns
-        // for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, false, !is_out);
+        for (int i = 0; i < DATA_WIDTH; i++) gpio_set_pulls(DATA_BASE + i, false, !is_out);
     }
 
     if (size != sdram_sm.data_size) {
@@ -82,6 +82,78 @@ void test_pio() {
 void debug_print() {
     printf("cmd_bus: %d, data_bus: %d, clkgen: %d, hsync: %d, vsync: %d\n", 
         sdram_sm.cmd_bus_pio, sdram_sm.data_bus_pio, sdram_sm.clkgen_pio, sdram_sm.hsync_pio, sdram_sm.vsync_pio);
+}
+
+void resync_all() {
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, false);
+    pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, false);
+
+    pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm);
+    pio_clkdiv_restart_sm_mask(sdram_sm.vsync_pio, 1u << sdram_sm.vsync_sm);
+
+    pio_sm_exec(sdram_sm.hsync_pio, sdram_sm.hsync_sm, sdram_sm.hsync_offset);
+    pio_sm_exec(sdram_sm.vsync_pio, sdram_sm.vsync_sm, sdram_sm.vsync_offset);
+
+    sleep_ms(10);
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
+    pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
+}
+
+void vga_init() {
+    for (int y = 0; y < 806; y++) {
+        uint16_t page[512];
+        for (int x = 0; x < 512; x++) {
+            page[x] = 0;
+            if (y < 768) {
+                if (y < 64 || y > 768-64 || (y > 768/2 - 32 && y < 768/2 + 32))
+                    page[x] = 0xffff;
+                else if (x < 30 || x > 512-30)
+                    page[x] = 0xffff;
+            
+            }
+        }
+
+        int addr = y * 512;
+        sdram_write_page(addr, 0, page, 512);
+    }
+    sleep_ms(10);
+}
+
+void vga_send() {
+    const size_t N = 168;
+    uint32_t cmd[N];
+
+    for (int i = 0; i < N; i++) cmd[i] = process_cmd(NOP, false);
+
+    int bank = 0;
+    int addr = 0;
+
+    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+
+    // ADDR10 results in an auto-precharge
+    cmd[N-1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+
+    cmd[127] = process_cmd(BURST_TERMINATE, false); 
+    cmd[128] = process_cmd(PRECHARGE | get_bank_word(bank), false); 
+
+    pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, false);
+    pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, false);
+    sleep_ms(1);
+
+    bool first = true;
+    while (1) {
+        for (int i = 0; i < 806; i++) {
+            addr = i * 512;
+            cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
+            cmd[N-1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true); 
+            sdram_exec_cmd(cmd, N);
+            if (first) {
+                first = false;
+                sleep_ms(10);
+                resync_all();
+            }
+        }
+    }
 }
 
 void sdram_init() {
@@ -206,6 +278,14 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 
     dma_channel_wait_for_finish_blocking(sdram_sm.read_chan);
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
+}
+
+void sdram_exec_cmd(uint32_t* cmd, uint32_t cmd_len) {
+    switch_bus_mode(false, 1); // set data bus to input mode
+
+    dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
+    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {

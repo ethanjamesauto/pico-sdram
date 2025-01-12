@@ -73,6 +73,8 @@ typedef struct {
 } sdram_sm_t;
 
 void debug_print();
+void vga_send();
+void vga_init();
 
 /**
  * Initialize the SDRAM state machines
@@ -83,6 +85,8 @@ void sdram_init();
  * Execute a sequence of commands and data
  */
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len);
+void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len);
+void sdram_exec_cmd(uint32_t* cmd, uint32_t cmd_len);
 
 /**
  * Run an auto refresh command on all banks
