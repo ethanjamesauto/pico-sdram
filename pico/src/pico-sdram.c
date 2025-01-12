@@ -41,7 +41,7 @@ void memtest() {
         if (i % 100000 == 0) printf("Read Progress: %.1f%%\n", (float)i / (float)max * 100.0);
         if (read_dat != get_data(i)) {
             printf("Read %d: %d", i, read_dat);
-            printf(" (err: %016b)\n", read_dat ^ get_data(i));
+            printf(" (err: %016b)\n", read_dat ^ get_data(i)); 
             errors = true;
         }
     }
