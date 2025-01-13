@@ -8,7 +8,7 @@ img = Image.open("poop2.jpg")
 img_gray = img.convert('L') 
 
 # Convert the image to a NumPy array
-img_array = np.array(img_gray)
+img_array = np.array(img)
 
 print(np.min(img_array), np.max(img_array), np.mean(img_array))
 
@@ -26,7 +26,11 @@ for y in tqdm(range(806)):
         if y >= 768:
             n = 0
         else:
-            n = img_array[y][x] >> 5
+            r = img_array[y][x][0] >> 6
+            g = img_array[y][x][1] >> 5
+            b = img_array[y][x][2] >> 6
+
+            n = (r << 3) | (g << 0) | (b << 5)
         
         #if img_array[x][y] > 90:
         #    n = 0xffff

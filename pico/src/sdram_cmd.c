@@ -95,7 +95,6 @@ void resync_all() {
     pio_sm_exec(sdram_sm.vsync_pio, sdram_sm.vsync_sm, sdram_sm.vsync_offset);
 
     while(pio_sm_is_exec_stalled(sdram_sm.hsync_pio, sdram_sm.hsync_sm) || pio_sm_is_exec_stalled(sdram_sm.vsync_pio, sdram_sm.vsync_sm));
-    // sleep_ms(100);
 
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
@@ -129,11 +128,11 @@ void vga_init() {
                 fscanf(stdin, "%2X", &utemp);
                 fscanf(stdin, "%2X", &utemp2);
                 page[x] = (utemp << 8) | utemp2;
+                if (x % 128 == 0) refresh_all();
                 
             }
             int addr = y * 512;
             sdram_write_page(addr, b, page, 512);
-            if (y % 64 == 0) refresh_all();
         }
     }
 }
@@ -409,9 +408,9 @@ void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_
 }
 
 void refresh_all() {
-    uint32_t cmd[8];
-    for (int i = 0; i < 8; i++) cmd[i] = process_cmd(AUTO_REFRESH, false);
-    for (int i = 0; i < 8192/8 + 1; i++) sdram_exec(cmd, 0, 8, 0);
+    uint32_t cmd[64];
+    for (int i = 0; i < 64; i++) cmd[i] = process_cmd(AUTO_REFRESH, false);
+    for (int i = 0; i < 8192/64 + 1; i++) sdram_exec(cmd, 0, 64, 0);
 }
 
 void sdram_startup() {
