@@ -102,7 +102,7 @@ void resync_all() {
 }
 
 void vga_init() {
-    for (int y = 0; y < 806; y++) {
+    /*for (int y = 0; y < 806; y++) {
         uint16_t page[512];
         for (int x = 0; x < 512; x++) {
             page[x] = 0;
@@ -118,7 +118,20 @@ void vga_init() {
         int addr = y * 512;
         sdram_write_page(addr, 0, page, 512);
     }
-    sleep_ms(10);
+    sleep_ms(10);*/
+    for (int y = 0; y < 806; y++) {
+        uint16_t page[512];
+        for (int x = 0; x < 512; x++) {
+            unsigned utemp = 0;
+            unsigned utemp2 = 0;
+            fscanf(stdin, "%2X", &utemp);
+            fscanf(stdin, "%2X", &utemp2);
+            page[x] = (utemp << 8) | utemp2;
+        }
+
+        int addr = y * 512;
+        sdram_write_page(addr, 0, page, 512);
+    }
 }
 
 void vga_send() {
