@@ -95,7 +95,7 @@ void resync_all() {
     pio_sm_exec(sdram_sm.vsync_pio, sdram_sm.vsync_sm, sdram_sm.vsync_offset);
 
     while(pio_sm_is_exec_stalled(sdram_sm.hsync_pio, sdram_sm.hsync_sm) || pio_sm_is_exec_stalled(sdram_sm.vsync_pio, sdram_sm.vsync_sm));
-    sleep_ms(100);
+    // sleep_ms(100);
 
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
@@ -119,6 +119,7 @@ void vga_init() {
         sdram_write_page(addr, 0, page, 512);
     }
     sleep_ms(10);*/
+    // if (false)
     for (int y = 0; y < 806; y++) {
         for (int b = 0; b < 2; b++) {
             uint16_t page[512];
@@ -128,10 +129,11 @@ void vga_init() {
                 fscanf(stdin, "%2X", &utemp);
                 fscanf(stdin, "%2X", &utemp2);
                 page[x] = (utemp << 8) | utemp2;
+                
             }
-
             int addr = y * 512;
             sdram_write_page(addr, b, page, 512);
+            if (y % 64 == 0) refresh_all();
         }
     }
 }
@@ -145,19 +147,24 @@ void vga_send() {
     int bank = 0;
     int addr = 0;
 
+    cmd[64] = process_cmd(PRECHARGE | get_bank_word(0), false);
+
     cmd[127] = process_cmd(BURST_TERMINATE, false); 
-    cmd[128] = process_cmd(PRECHARGE | get_bank_word(bank), false); 
+    cmd[128] = process_cmd(PRECHARGE | get_bank_word(1), false); 
 
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, false);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, false);
-    sleep_ms(1);
 
     bool first = true;
     while (1) {
         for (int i = 0; i < 806; i++) {
             addr = i * 512;
-            cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(bank) | get_addr_word(addr >> 9), false);
-            cmd[N-1] = process_cmd(READ | get_bank_word(bank) | get_addr_word(addr & 0x1ff), false); 
+            cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word(addr >> 9), false);
+            cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word(addr & 0x1ff), false); 
+
+            cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
+            cmd[63] = process_cmd(READ | get_bank_word(1) | get_addr_word(addr & 0x1ff), false);
+
             sdram_exec_cmd(cmd, N);
             if (first) {
                 first = false;
