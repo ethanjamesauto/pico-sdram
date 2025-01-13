@@ -70,6 +70,7 @@ typedef struct {
     int cmd_chan;
     int read_chan;
     int write_chan;
+    int cmd_chan_chain;
 } sdram_sm_t;
 
 void debug_print();

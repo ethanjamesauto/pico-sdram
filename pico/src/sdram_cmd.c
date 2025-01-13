@@ -96,8 +96,6 @@ void resync_all() {
 
     while(pio_sm_is_exec_stalled(sdram_sm.hsync_pio, sdram_sm.hsync_sm) || pio_sm_is_exec_stalled(sdram_sm.vsync_pio, sdram_sm.vsync_sm));
 
-    sleep_ms(100);
-
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
 }
@@ -115,6 +113,12 @@ void vga_init() {
     }
 }
 
+volatile bool flag = false;
+void dma_handler() {
+    dma_hw->ints0 = 1u << sdram_sm.cmd_chan;
+    flag = true;
+}
+
 void vga_send() {
     const size_t N = 168;
     uint32_t cmd[N];
@@ -129,22 +133,59 @@ void vga_send() {
     cmd[127] = process_cmd(BURST_TERMINATE, false); 
     cmd[128] = process_cmd(PRECHARGE | get_bank_word(1), false); 
 
+    // reconfigure the cmd channel to chain 
+    dma_channel_config c = dma_channel_get_default_config(sdram_sm.cmd_chan);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, true);
+    channel_config_set_write_increment(&c, false);
+    channel_config_set_chain_to(&c, sdram_sm.cmd_chan_chain);
+    channel_config_set_dreq(&c, pio_get_dreq(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm, true));
+
+    dma_channel_configure(
+        sdram_sm.cmd_chan,                          // Channel to be configured
+        &c,                                         // The configuration we just created
+        &sdram_sm.cmd_bus_pio->txf[sdram_sm.cmd_bus_sm],            // The initial write address
+        cmd,                                          // The initial read address (we set this later)
+        0,                                          // Number of transfers; in this case each is 1 byte.
+        false                                       // Don't start immediately.
+    );
+
+    dma_channel_set_irq0_enabled(sdram_sm.cmd_chan, true);
+    irq_set_exclusive_handler(DMA_IRQ_0, dma_handler);
+    irq_set_enabled(DMA_IRQ_0, true);
+
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, false);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, false);
+    switch_bus_mode(false, 1); // set data bus to input mode
+    
+    uint32_t* data_addr = cmd;
+    dma_channel_set_read_addr(sdram_sm.cmd_chan_chain, &data_addr, false); 
 
     bool first = true;
-    while (1) {
-        for (int i = 0; i < 806; i++) {
-            addr = i * 512;
-            cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word(addr >> 9), false);
-            cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word(addr & 0x1ff), false); 
+    while(1) {
+        for (int line = 0; line < 806; line++) {
+            while(!flag);
+            flag = false;
+            addr = line * 512;
 
-            cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
-            cmd[63] = process_cmd(READ | get_bank_word(1) | get_addr_word(addr & 0x1ff), false);
+            cmd[N-1] = process_cmd(NOP, false); 
+            cmd[N-2] = process_cmd(NOP, false); 
+            cmd[63] = process_cmd(NOP, false);
+            cmd[62] = process_cmd(NOP, false);
 
-            sdram_exec_cmd(cmd, N);
+            if (line < 768) {
+                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word(addr & 0x1ff), false);
+                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word(addr >> 9), false);
+                cmd[63] = process_cmd(READ | get_bank_word(1) | get_addr_word(addr & 0x1ff), false);
+                cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
+            } else if (line == 805) {
+                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word((0) & 0x1ff), false);
+                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((0) >> 9), false);
+            }
+
             if (first) {
                 first = false;
+                dma_channel_set_trans_count(sdram_sm.cmd_chan, N, true);
                 while(!pio_sm_is_tx_fifo_full(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm));
                 resync_all();
             }
@@ -195,6 +236,7 @@ void sdram_init() {
     sdram_sm.cmd_chan = dma_claim_unused_channel(true);
     sdram_sm.read_chan = dma_claim_unused_channel(true);
     sdram_sm.write_chan = dma_claim_unused_channel(true);
+    sdram_sm.cmd_chan_chain = dma_claim_unused_channel(true);
 
     dma_channel_config c;
 
@@ -242,6 +284,21 @@ void sdram_init() {
         0,                                          // Number of transfers; in this case each is 1 byte.
         false                                       // Don't start immediately.
     );
+
+    c = dma_channel_get_default_config(sdram_sm.cmd_chan_chain);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_32);
+    channel_config_set_read_increment(&c, false);
+    channel_config_set_write_increment(&c, false);
+    channel_config_set_chain_to(&c, sdram_sm.cmd_chan);
+
+    dma_channel_configure(
+        sdram_sm.cmd_chan_chain,                          // Channel to be configured
+        &c,                                         // The configuration we just created
+        &dma_hw->ch[sdram_sm.cmd_chan].read_addr,            // The initial write address
+        0,                                          // The initial read address
+        1,                                          // Number of transfers;
+        false                                       // Don't start immediately.
+    );
 }
 
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
@@ -275,11 +332,8 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
 }
 
 void sdram_exec_cmd(uint32_t* cmd, uint32_t cmd_len) {
-    switch_bus_mode(false, 1); // set data bus to input mode
-
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
-    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, false);
-    dma_channel_set_trans_count(sdram_sm.cmd_chan, cmd_len, true);
+    dma_channel_set_read_addr(sdram_sm.cmd_chan, cmd, true);
 }
 
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
