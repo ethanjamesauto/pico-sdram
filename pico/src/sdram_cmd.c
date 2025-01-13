@@ -103,39 +103,14 @@ void resync_all() {
 }
 
 void vga_init() {
-    /*for (int y = 0; y < 806; y++) {
-        uint16_t page[512];
-        for (int x = 0; x < 512; x++) {
-            page[x] = 0;
-            if (y < 768) {
-                if (y < 64 || y > 768-64 || (y > 768/2 - 32 && y < 768/2 + 32))
-                    page[x] = 0xffff;
-                else if (x < 30 || x > 512-30)
-                    page[x] = 0xffff;
-            
-            }
-        }
-
-        int addr = y * 512;
-        sdram_write_page(addr, 0, page, 512);
-    }
-    sleep_ms(10);*/
     // if (false)
     for (int y = 0; y < 806; y++) {
         for (int b = 0; b < 2; b++) {
             uint16_t page[512];
-            /*for (int x = 0; x < 512; x++) {
-                unsigned utemp = 0;
-                unsigned utemp2 = 0;
-                // fscanf(stdin, "%2X", &utemp);
-                fscanf(stdin, "%2X", &utemp2);
-                page[x] = (utemp << 8) | utemp2;
-                if (x % 128 == 0) refresh_all();
-                
-            }*/
             fread(page, 2, 512, stdin);
             int addr = y * 512;
             sdram_write_page(addr, b, page, 512);
+            refresh_all();
         }
     }
 }
