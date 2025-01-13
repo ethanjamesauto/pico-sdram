@@ -22,6 +22,7 @@ ser = serial.Serial(
 print('%04x\n' % 5)
 
 for y in tqdm(range(806)):
+    row = np.zeros(512*2, dtype=np.uint16)
     for x in range(512*2):
         if y >= 768:
             n = 0
@@ -29,12 +30,12 @@ for y in tqdm(range(806)):
             r = img_array[y][x][0] >> 6
             g = img_array[y][x][1] >> 5
             b = img_array[y][x][2] >> 6
-
             n = (r << 3) | (g << 0) | (b << 5)
         
+        row[x] = n
         #if img_array[x][y] > 90:
         #    n = 0xffff
         # ser.write(('%02x\n' % (n >> 8,)).encode())
-        ser.write(('%02x\n' % (n & 0xff,)).encode())
+    ser.write(row.tobytes())
 
 ser.close();

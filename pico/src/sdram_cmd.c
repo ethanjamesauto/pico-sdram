@@ -124,7 +124,7 @@ void vga_init() {
     for (int y = 0; y < 806; y++) {
         for (int b = 0; b < 2; b++) {
             uint16_t page[512];
-            for (int x = 0; x < 512; x++) {
+            /*for (int x = 0; x < 512; x++) {
                 unsigned utemp = 0;
                 unsigned utemp2 = 0;
                 // fscanf(stdin, "%2X", &utemp);
@@ -132,7 +132,8 @@ void vga_init() {
                 page[x] = (utemp << 8) | utemp2;
                 if (x % 128 == 0) refresh_all();
                 
-            }
+            }*/
+            fread(page, 2, 512, stdin);
             int addr = y * 512;
             sdram_write_page(addr, b, page, 512);
         }
