@@ -4,7 +4,7 @@ from tqdm import tqdm
 from PIL import Image
 import numpy as np
 
-img = Image.open("poop2.jpg")
+img = Image.open("poop2.jpg").resize((1024, 768))
 img_gray = img.convert('L') 
 
 # Convert the image to a NumPy array
@@ -34,7 +34,7 @@ for y in tqdm(range(806)):
         
         #if img_array[x][y] > 90:
         #    n = 0xffff
-        ser.write(('%02x\n' % (n >> 8,)).encode())
+        # ser.write(('%02x\n' % (n >> 8,)).encode())
         ser.write(('%02x\n' % (n & 0xff,)).encode())
 
 ser.close();

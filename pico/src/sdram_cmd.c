@@ -96,6 +96,8 @@ void resync_all() {
 
     while(pio_sm_is_exec_stalled(sdram_sm.hsync_pio, sdram_sm.hsync_sm) || pio_sm_is_exec_stalled(sdram_sm.vsync_pio, sdram_sm.vsync_sm));
 
+    sleep_ms(100);
+
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
 }
@@ -125,7 +127,7 @@ void vga_init() {
             for (int x = 0; x < 512; x++) {
                 unsigned utemp = 0;
                 unsigned utemp2 = 0;
-                fscanf(stdin, "%2X", &utemp);
+                // fscanf(stdin, "%2X", &utemp);
                 fscanf(stdin, "%2X", &utemp2);
                 page[x] = (utemp << 8) | utemp2;
                 if (x % 128 == 0) refresh_all();
