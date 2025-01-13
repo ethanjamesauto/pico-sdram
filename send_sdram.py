@@ -22,7 +22,7 @@ ser = serial.Serial(
 print('%04x\n' % 5)
 
 for y in tqdm(range(806)):
-    for x in range(512):
+    for x in range(512*2):
         if y >= 768:
             n = 0
         else:
