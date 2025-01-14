@@ -109,7 +109,7 @@ void resync_all() {
 
 void vga_init() {
     // if (false)
-    for (int y = 0; y < 806; y++) {
+    for (int y = 0; y < 768; y++) {
         for (int b = 0; b < 2; b++) {
             uint16_t page[512];
             fread(page, 2, 512, stdin);
