@@ -4,7 +4,7 @@ from tqdm import tqdm
 from PIL import Image
 import numpy as np
 
-img = Image.open("poop2.jpg").resize((1024, 768))
+img = Image.open("poop3.jpg").resize((1024, 768))
 img_gray = img.convert('L') 
 
 # Convert the image to a NumPy array

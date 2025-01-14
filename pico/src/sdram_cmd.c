@@ -178,12 +178,14 @@ void vga_send() {
             cmd[62] = process_cmd(NOP, false);
 
             if (line < 768) {
-                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word((addr+512) & 0x1ff), false);
-                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((addr+512) >> 9), false);
-                cmd[63] = process_cmd(READ | get_bank_word(1) | get_addr_word(addr & 0x1ff), false);
+                if (line != 767) {
+                    cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
+                    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((addr+512) >> 9), false);
+                }
+                cmd[63] = process_cmd(READ | get_bank_word(1), false);
                 cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
             } else if (line == 805) {
-                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word((0) & 0x1ff), false);
+                cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
                 cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((0) >> 9), false);
             }
 
