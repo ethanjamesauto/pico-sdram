@@ -16,6 +16,8 @@
 #define HSYNC_GPIO 28
 #define VSYNC_GPIO 16
 
+#define NUM_FRAMES 3
+
 // variable for storing all pio sm offsets, etc.
 sdram_sm_t sdram_sm;
 
@@ -109,13 +111,15 @@ void resync_all() {
 
 void vga_init() {
     // if (false)
-    for (int y = 0; y < 768; y++) {
-        for (int b = 0; b < 2; b++) {
-            uint16_t page[512];
-            fread(page, 2, 512, stdin);
-            int addr = y * 512;
-            sdram_write_page(addr, b, page, 512);
-            refresh_all();
+    for (int f = 0; f < NUM_FRAMES; f++) {
+        for (int y = 0; y < 768; y++) {
+            for (int b = 0; b < 2; b++) {
+                uint16_t page[512];
+                fread(page, 2, 512, stdin);
+                int addr = (y + f*768) * 512;
+                sdram_write_page(addr, b, page, 512);
+                refresh_all();
+            }
         }
     }
 }
@@ -167,33 +171,36 @@ void vga_send() {
 
     bool first = true;
     while(1) {
-        for (int line = 0; line < 806; line++) {
-            while(!flag);
-            flag = false;
-            int addr = line * 512;
+        for (int f = 0; f < NUM_FRAMES; f++) {
+            for (int i = 0; i < 60; i++)
+            for (int line = 0; line < 806; line++) {
+                while(!flag);
+                flag = false;
+                int addr = (768*f + line) * 512;
 
-            cmd[N-1] = process_cmd(NOP, false); 
-            cmd[N-2] = process_cmd(NOP, false); 
-            cmd[63] = process_cmd(NOP, false);
-            cmd[62] = process_cmd(NOP, false);
+                cmd[N-1] = process_cmd(NOP, false); 
+                cmd[N-2] = process_cmd(NOP, false); 
+                cmd[63] = process_cmd(NOP, false);
+                cmd[62] = process_cmd(NOP, false);
 
-            if (line < 768) {
-                if (line != 767) {
+                if (line < 768) {
+                    if (line != 767) {
+                        cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
+                        cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((addr+512) >> 9), false);
+                    }
+                    cmd[63] = process_cmd(READ | get_bank_word(1), false);
+                    cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
+                } else if (line == 805) {
                     cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
-                    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((addr+512) >> 9), false);
+                    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((0) >> 9), false);
                 }
-                cmd[63] = process_cmd(READ | get_bank_word(1), false);
-                cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
-            } else if (line == 805) {
-                cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
-                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((0) >> 9), false);
-            }
 
-            if (first) {
-                first = false;
-                dma_channel_set_trans_count(sdram_sm.cmd_chan, N, true);
-                while(!pio_sm_is_tx_fifo_full(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm));
-                resync_all();
+                if (first) {
+                    first = false;
+                    dma_channel_set_trans_count(sdram_sm.cmd_chan, N, true);
+                    while(!pio_sm_is_tx_fifo_full(sdram_sm.cmd_bus_pio, sdram_sm.cmd_bus_sm));
+                    resync_all();
+                }
             }
         }
     }
