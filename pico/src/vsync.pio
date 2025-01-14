@@ -9,8 +9,6 @@
 ; Repeatedly get one word of data from the TX FIFO, stalling when the FIFO is
 ; empty. Write the least significant bit to the OUT pin group.
 
-nop [13]
-
 .wrap_target
 
 set x, 23 [2]

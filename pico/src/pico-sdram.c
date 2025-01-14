@@ -95,7 +95,7 @@ void memtest_full_page(uint8_t bank) {
 
 int main()
 {
-    set_sys_clock_khz(110000, false);
+    set_sys_clock_khz(130000, false);
     stdio_init_all();
     sdram_init();    
     sdram_startup();

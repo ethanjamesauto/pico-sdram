@@ -1,6 +1,7 @@
 #include "pico/stdlib.h"
 #include "hardware/pio.h"
 #include "hardware/dma.h"
+#include "hardware/sync.h"
 
 #include "sdram_cmd.h"
 
@@ -85,11 +86,12 @@ void debug_print() {
 }
 
 void resync_all() {
+    uint32_t status = save_and_disable_interrupts();
+
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, false);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, false);
 
     pio_clkdiv_restart_sm_mask(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm);
-    pio_clkdiv_restart_sm_mask(sdram_sm.vsync_pio, 1u << sdram_sm.vsync_sm);
 
     pio_sm_exec(sdram_sm.hsync_pio, sdram_sm.hsync_sm, sdram_sm.hsync_offset);
     pio_sm_exec(sdram_sm.vsync_pio, sdram_sm.vsync_sm, sdram_sm.vsync_offset);
@@ -97,7 +99,12 @@ void resync_all() {
     while(pio_sm_is_exec_stalled(sdram_sm.hsync_pio, sdram_sm.hsync_sm) || pio_sm_is_exec_stalled(sdram_sm.vsync_pio, sdram_sm.vsync_sm));
 
     pio_set_sm_mask_enabled(sdram_sm.cmd_bus_pio, 1u << sdram_sm.cmd_bus_sm | 1u << sdram_sm.hsync_sm, true);
+
+    for(volatile int i = 0; i < 195; i++);
+    pio_clkdiv_restart_sm_mask(sdram_sm.vsync_pio, 1u << sdram_sm.vsync_sm);
     pio_sm_set_enabled(sdram_sm.vsync_pio, sdram_sm.vsync_sm, true);
+
+    restore_interrupts(status);
 }
 
 void vga_init() {
@@ -122,16 +129,6 @@ void dma_handler() {
 void vga_send() {
     const size_t N = 168;
     uint32_t cmd[N];
-
-    for (int i = 0; i < N; i++) cmd[i] = process_cmd(NOP, false);
-
-    int bank = 0;
-    int addr = 0;
-
-    cmd[64] = process_cmd(PRECHARGE | get_bank_word(0), false);
-
-    cmd[127] = process_cmd(BURST_TERMINATE, false); 
-    cmd[128] = process_cmd(PRECHARGE | get_bank_word(1), false); 
 
     // reconfigure the cmd channel to chain 
     dma_channel_config c = dma_channel_get_default_config(sdram_sm.cmd_chan);
@@ -161,12 +158,19 @@ void vga_send() {
     uint32_t* data_addr = cmd;
     dma_channel_set_read_addr(sdram_sm.cmd_chan_chain, &data_addr, false); 
 
+    for (int i = 0; i < N; i++) cmd[i] = process_cmd(NOP, false);
+
+    cmd[64] = process_cmd(PRECHARGE | get_bank_word(0), false);
+
+    cmd[127] = process_cmd(BURST_TERMINATE, false); 
+    cmd[128] = process_cmd(PRECHARGE | get_bank_word(1), false); 
+
     bool first = true;
     while(1) {
         for (int line = 0; line < 806; line++) {
             while(!flag);
             flag = false;
-            addr = line * 512;
+            int addr = line * 512;
 
             cmd[N-1] = process_cmd(NOP, false); 
             cmd[N-2] = process_cmd(NOP, false); 
@@ -174,8 +178,8 @@ void vga_send() {
             cmd[62] = process_cmd(NOP, false);
 
             if (line < 768) {
-                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word(addr & 0x1ff), false);
-                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word(addr >> 9), false);
+                cmd[N-1] = process_cmd(READ | get_bank_word(0) | get_addr_word((addr+512) & 0x1ff), false);
+                cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((addr+512) >> 9), false);
                 cmd[63] = process_cmd(READ | get_bank_word(1) | get_addr_word(addr & 0x1ff), false);
                 cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
             } else if (line == 805) {
