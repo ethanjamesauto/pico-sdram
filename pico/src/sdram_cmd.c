@@ -192,7 +192,7 @@ void vga_send() {
                     cmd[62] = process_cmd(ACTIVATE | get_bank_word(1) | get_addr_word(addr >> 9), false);
                 } else if (line == 805) {
                     cmd[N-1] = process_cmd(READ | get_bank_word(0), false);
-                    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((0) >> 9), false);
+                    cmd[N-2] = process_cmd(ACTIVATE | get_bank_word(0) | get_addr_word((768*512*f) >> 9), false);
                 }
 
                 if (first) {
