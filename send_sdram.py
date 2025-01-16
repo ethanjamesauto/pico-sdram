@@ -15,7 +15,7 @@ ser = serial.Serial(
     timeout=1
 )
 
-num_frames = 3
+num_frames = 5
 
 for f in range(num_frames):
     img = Image.open("poop" + str(f+1) + ".jpg").resize((1024, 768))
