@@ -9,8 +9,10 @@ This project attempts to interface a Raspberry Pi Pico with a [32MB SDRAM IC](ht
   <img src="images/p3.png" width="200" />
 </p>
 
-## Known Issues
-* The data bus FIFO will occasionally overflow when performing burst reads when the CPU is servicing an interrupt
+## Introduction
+SDRAM ICs are commonly available in sizes of up to 256MBit (32MB), and most have either an 8-bit or 16-bit data bus width. The control interface uses a total of 23 pins, so there are simply too many pins for an RP2040 to directly drive using GPIOs. 
+
+Shift registers may be reduce the number of GPIOs needed to interface with the ram. Because the RP2040 can only drive shift registers so quickly, the SDRAM chip would need to be driven at a lower clock speed. I propose a solution in which the control pins are driven using shift registers while the data bus is connected directly to the RP2040's GPIOs. This reduces the speed at which commands can be sent to the SDRAM, while still allowing the data bus to run at full speed. This solution has a drawback - it takes more time to send the two commands needed to initiate a read (row activate and read). However, this issue becomes neglible when most reads and writes use large block sizes (for example, when performing 1KB block reads and writes).
 
 ## Future Work
 Eventually, I'd like to use this SDRAM interface with a PIO-based QSPI interface. The QSPI interface may then appear as a QSPI PSRAM and can be connected to the rp2350's QSPI bus. The pico can then translate "psram" accesses to sdram accesses, which would **allow the pico to natively access sdram in the address space**. This might not be possible.
