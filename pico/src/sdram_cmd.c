@@ -55,25 +55,10 @@ uint32_t get_addr_word(uint32_t a) {
     return word;
 }
 
-void test_pio() {
-    sdram_startup();
-
-    // for (int i = 0; i < 8; i++) {
-    //     sdram_write1(i, 0, i + 3);
-    // }
-    uint16_t dat[8];
-    for (int i = 0; i < 8; i++) dat[i] = 8 + i;
-    sdram_write8(0, 0, dat);
-
-    sdram_read8(0, 0, dat);
-    for (int i = 0; i < 8; i++) {
-        printf("%d ", dat[i]);
-    }
-    printf("\n");
-    // for (int i = 0; i < 1000; i++) sdram_read1(0, 0);
-    // printf("%d\n", dat);
-}
-
+/**
+ * Set up the SDRAM driver
+ * This function initializes the PIOs and DMAs. No IO is performed in this step.
+ */
 void sdram_init() {
     bool success = pio_claim_free_sm_and_add_program_for_gpio_range(&three_74hc595_program, &sdram_sm.cmd_bus_pio, &sdram_sm.cmd_bus_sm, &sdram_sm.cmd_bus_offset, CMD_SM_SIDESET_BASE, CMD_SM_TOTAL_PINS, true);
     hard_assert(success);
@@ -154,6 +139,11 @@ void sdram_init() {
     );
 }
 
+/**
+ * Write a sequence of commands to the SDRAM. A single command may have the "is_rw" flag set to true - 
+ * this will cause the command state machine to write data to the bus - an amount equal to data_len
+ * The amount of data words sent must be even.
+ */
 void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
 
     switch_bus_mode(true, data_len); // set data bus to output mode
@@ -168,8 +158,11 @@ void sdram_exec(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_l
     dma_channel_wait_for_finish_blocking(sdram_sm.write_chan);
 }
 
-// TODO: no need to store the data in the data array, just read it directly from the fifo
-// same for sdram_exec
+/**
+ * Write a sequence of commands to the SDRAM. A single command may have the "is_rw" flag set to true - 
+ * this will cause the command state machine to read data from the bus - an amount equal to data_len
+ * The amount of data words read must be even.
+ */
 void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t data_len) {
 
     switch_bus_mode(false, data_len); // set data bus to input mode
@@ -184,6 +177,9 @@ void sdram_exec_read(uint32_t* cmd, uint16_t* data, uint32_t cmd_len, uint32_t d
     dma_channel_wait_for_finish_blocking(sdram_sm.cmd_chan);
 }
 
+/**
+ * Write a single data word to the specified bank and address
+ */
 void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     const int num_cmds = 4;
     const int num_data = 2;
@@ -203,6 +199,9 @@ void sdram_write1(uint32_t addr, uint8_t bank, uint16_t data) {
     sdram_exec(cmd, dat, num_cmds, num_data);
 }
 
+/**
+ * Read a single data word from the specified bank and address
+ */
 uint16_t sdram_read1(uint32_t addr, uint8_t bank) {
     const int num_cmds = 4;
     const int num_data = 2;
@@ -251,6 +250,10 @@ void sdram_write8(uint32_t addr, uint8_t bank, uint16_t* data) {
     sdram_exec(cmd, data, num_cmds, num_data);
 }
 
+/**
+ * Read up to 512 data words from memory.
+ * num_data must be in [8, 512] and divisble by 8.
+ */
 void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data) {
     int burst_term = num_data / 8;
     int num_cmds = 2 + burst_term + 1 + 1;
@@ -269,6 +272,10 @@ void sdram_read_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_d
     sdram_exec_read(cmd, data, num_cmds, num_data);
 }
 
+/**
+ * Write up to 512 data words to memory.
+ * num_data must be in [8, 512] and divisble by 8.
+ */
 void sdram_write_page(uint32_t addr, uint8_t bank, uint16_t* data, uint16_t num_data) {
     int burst_term = num_data / 8;
     int num_cmds = 2 + burst_term + 1 + 1;
@@ -293,6 +300,13 @@ void refresh_all() {
     for (int i = 0; i < 8192/8 + 1; i++) sdram_exec(cmd, 0, 8, 0);
 }
 
+/**
+ * Run the SDRAM start-up sequence. This should be called after calling sdram_init().
+ * Currently, this is the only place where the mode register is programmed. The mode
+ * register is configured for full-page bursting, so only sdram_read_page and 
+ * sdram_write_page may be used. Other read and write functions such as sdram_read1 may
+ * cause undefined behavior to occur.
+ */
 void sdram_startup() {
     uint32_t cmd[7];
     cmd[0] = process_cmd(PRECHARGE_ALL, false);
@@ -308,6 +322,14 @@ void sdram_startup() {
     sdram_exec(cmd, 0, 7, 0);
 }
 
+/**
+ * Turn SDRAM commands into words that may be sent to the command PIO state machine.
+ * Setting is_rw to true will result in the command state machine triggering the data
+ * state machine to read or write data to/from the bus. 
+ * 
+ * Example usage:
+ * uint32 command = process_cmd(WRITE | get_bank_word(bank) | get_addr_word(addr & 0x1ff), true);
+ */
 inline uint32_t process_cmd(uint32_t cmd, bool is_rw) {
     cmd |= PIN_SDRAM_CKE;
     cmd = ((cmd & 0b111111111111111111111000) << 5) | (cmd & 0b111);
