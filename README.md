@@ -9,6 +9,16 @@ This project attempts to interface a Raspberry Pi Pico with a [32MB SDRAM IC](ht
   <img src="images/p3.png" width="200" />
 </p>
 
+## UPDATE - Current State
+I have been able to successfully perform single and burst read/writes to the W9825G6KH SDRAM IC. I am running the SDRAM at half the speed of the rp2040 clock - the PIO state machines
+are running at the minimum clock divider value.
+I don't have full documentation, but some is available in:
+* [pico/src/pico-sdram.c](pico/src/pico-sdram.c) - contains the main driver code
+* [pico/src/pico-sdram.c](pico/src/pico-sdram.c) - example usage of the driver code
+* [pico/src](pico/src)
+* [pico/src/three_74hc595.pio](pico/src/three_74hc595.pio) - PIO driver for the 3x 74hc595 shift registers used to drive the address bus
+* [pico/src/data_bus.pio](pico/src/data_bus.pio) - PIO driver for the 16-bit data bus
+
 ## Introduction
 SDRAM ICs are commonly available in sizes of up to 256MBit (32MB), and most have either an 8-bit or 16-bit data bus width. The control interface uses a total of 23 pins, so there are simply too many pins for an RP2040 to directly drive using GPIOs. 
 
